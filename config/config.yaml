@@ -1,0 +1,35 @@
+# BTC Monitor Configuration
+
+# Twitter/X API
+twitter:
+  consumer_key: ""
+  consumer_secret: ""
+  access_token: ""
+  access_token_secret: ""
+  bearer_token: ""
+
+# Database
+database:
+  url: "sqlite:///btc_monitor.db"
+
+# Data sources
+data_sources:
+  update_interval: 300  # seconds
+  symbols:
+    - "BTC-USD"
+
+# Analysis
+analysis:
+  rsi_period: 14
+  macd_fast: 12
+  macd_slow: 26
+  macd_signal: 9
+  moving_averages:
+    - 20
+    - 50
+    - 200
+
+# Logging
+logging:
+  level: "INFO"
+  file: "btc_monitor.log"
