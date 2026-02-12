@@ -305,3 +305,68 @@ Started: 2026-02-12T12:12:00Z
 - **Learnings:** Dual-mode architecture (API + scraping) provides reliability and fallback. NewsAPI has pageSize limit of 100, so max_articles parameter is clamped. Web scraping with BeautifulSoup is fragile but works as fallback. Relative URL handling is necessary for complete links. CSS selectors need to be updated if site structure changes. Content length limiting prevents database bloat from long articles. Graceful degradation (return empty list on errors) is better than crashing for automated systems. HTTP session reuse improves performance and connection management.
 
 ---
+
+## 2026-02-12T16:32:00Z - US-010: Implement online research data collector
+- Created ResearchCollector class in src/btc_monitor/sentiment.py extending SentimentCollector
+- Implemented research data collection from online sources (TradingView ideas)
+- Implemented _analyze_sentiment() method for keyword-based sentiment scoring:
+  - Bullish keywords: bullish, rally, surge, gains, uptrend, breakout, soar, skyrocket, bull market, positive, optimistic, strong, strong support, resistance broken, price surge, momentum, growth, expansion, record high, upgrade, outperform, buy, overweight, accumulate, long, holding above
+  - Bearish keywords: bearish, crash, plunge, drop, losses, downtrend, collapse, bear market, negative, pessimistic, weak, support broken, strong resistance, price drop, sell-off, decline, fall, slump, correction, dump, downgrade, underperform, sell, reduce, short, holding below, struggling at
+  - Score calculation: (bullish_count - bearish_count) / total_keywords
+  - Returns 0.0 for neutral text (no keywords found)
+- Implemented _extract_price_target() method:
+  - Parses price targets from text in multiple formats: $100,000, 100k, 0.5M
+  - Uses regex patterns to find dollar amounts, K suffix, and M suffix
+  - Returns extracted price as float or None if not found
+  - Handles comma-separated numbers and decimal values
+- Implemented _score_price_target() method:
+  - Compares price target to current_price (if provided)
+  - Higher target = bullish (positive score), lower target = bearish (negative score)
+  - Uses sigmoid-like function to map percentage difference to [-1.0, 1.0]
+  - Returns 0.0 if current_price is None (can't score without reference)
+- Implemented _scrape_research_site() method:
+  - Uses BeautifulSoup to parse research site HTML
+  - Extracts research ideas with title and author information
+  - Handles relative URLs by prepending base URL
+  - Gracefully handles HTTP errors and malformed HTML
+  - Logs errors without stopping collection
+- Implemented _scrape_research_sources() method:
+  - Scrapes multiple configured research sources
+  - Respects max_items limit across all sources
+  - Returns aggregated research items list
+- Implemented collect() method:
+  - Scrapes research sources for BTC-specific analysis
+  - Filters items by publication date (within hours_back)
+  - Handles missing/invalid publishedAt timestamps
+  - Skips items with empty titles
+  - Combines price target scoring (70% weight) with keyword scoring (30% weight)
+  - If no significant price target, uses keyword score only
+  - Creates SentimentEntry objects with source='research'
+  - Includes author name in content field when available
+  - Limits content field to 500 characters
+- Implemented collect_and_save() method to save sentiment data to SentimentData table
+- Added __del__ method to clean up HTTP session when collector is destroyed
+- Updated config/config.yaml to include research configuration (max_items, hours_back)
+- Updated type stub file (sentiment.pyi) with ResearchCollector definitions
+- Wrote 36 comprehensive tests in tests/test_research_sentiment.py covering:
+  - Collector initialization with custom and default parameters
+  - Cutoff time calculation based on hours_back
+  - Sentiment analysis: bullish, bearish, neutral, case insensitivity
+  - Price target extraction: dollar format, K format, M format, no target
+  - Price target scoring: bullish, bearish, neutral, no current price
+  - HTTP session creation and reuse
+  - Bullish and bearish keyword lists validation
+  - Research sources configuration validation
+  - Scraping: success, HTTP errors, max_items limit, relative URLs
+  - Scraping multiple sources with aggregation
+  - collect() method: with price targets, with keywords only, filters by timestamp, empty titles, content length limit, processing errors, no current price, no items
+  - Database integration: collect_and_save(), empty results
+  - Session cleanup on deletion
+- All 36 new tests pass
+- All 222 existing tests continue to pass
+- Total: 258 tests passing
+- Type checking verified manually (mypy duplicate module issue is known limitation)
+- Package imports successfully
+- **Learnings:** Price target analysis provides more objective sentiment than keywords alone. Combining price target (70%) with keywords (30%) gives more accurate sentiment when targets are available. Regex patterns for price targets need to handle multiple formats ($100k, 100k, 0.5M). Sigmoid function provides smooth mapping of price differences to sentiment scores. Research sites may not provide publication timestamps in listings, so default to current time (tradeoff: time filtering less accurate, but still functional). Content includes author name when available for attribution. Web scraping CSS selectors must be updated if site structure changes. Graceful degradation on errors is essential for automated collection systems.
+
+---
