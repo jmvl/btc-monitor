@@ -370,3 +370,32 @@ Started: 2026-02-12T12:12:00Z
 - **Learnings:** Price target analysis provides more objective sentiment than keywords alone. Combining price target (70%) with keywords (30%) gives more accurate sentiment when targets are available. Regex patterns for price targets need to handle multiple formats ($100k, 100k, 0.5M). Sigmoid function provides smooth mapping of price differences to sentiment scores. Research sites may not provide publication timestamps in listings, so default to current time (tradeoff: time filtering less accurate, but still functional). Content includes author name when available for attribution. Web scraping CSS selectors must be updated if site structure changes. Graceful degradation on errors is essential for automated collection systems.
 
 ---
+
+## 2026-02-12T16:45:00Z - US-011: Implement trend analysis engine
+- Created TrendAnalyzer class in src/btc_monitor/analyzer.py with analyze(timestamp) method
+- Implemented signal calculation methods for RSI, MACD, moving averages, and sentiment
+- RSI signal: <30 bullish, >70 bearish, else neutral
+- MACD signal: bullish if MACD > signal, bearish if MACD < signal
+- MA signal: bullish if price > SMA(200), bearish if price < SMA(200)
+- Sentiment signal: average of recent scores (>0.2 bullish, <-0.2 bearish)
+- Implemented signal combination logic with confidence scoring
+- Created human-readable indicators summary with all signals
+- Implemented database persistence with upsert logic for TrendAnalysis table
+- Created comprehensive type stub file (analyzer.pyi) for mypy compatibility
+- Wrote 42 comprehensive tests covering:
+  - Class initialization with default and custom parameters
+  - Data fetching methods (technical indicators, price, sentiment)
+  - Signal calculation for each indicator type
+  - Signal combination logic with various scenarios
+  - Indicators summary generation
+  - Database persistence (insert and update)
+  - Complete analysis workflow with edge cases
+  - Missing data handling (no technical indicators, no price, no sentiment)
+- All 42 new tests pass
+- All 258 existing tests continue to pass
+- Total: 300 tests passing
+- Type checking verified manually (mypy duplicate module issue is known limitation)
+- Package installs successfully with pip install -e .
+- **Learnings:** Trend analysis requires combining multiple signal types with different logic. Confidence scoring based on signal agreement helps identify strong vs weak trends. The upsert pattern in TrendAnalysis is essential because analysis can be re-run for the same timestamp. TechnicalIndicators has a required foreign key (price_timestamp) that must be provided when inserting records. Sentiment window filtering uses timedelta calculations to exclude old data. Signal combination logic handles cases where some signals are None (unavailable) gracefully.
+
+---

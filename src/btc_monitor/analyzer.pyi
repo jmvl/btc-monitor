@@ -16,9 +16,49 @@ from btc_monitor.models import (
 class TrendAnalyzer:
     """Analyzes technical and sentiment data to determine market trend."""
     
-    def __init__(self, sentiment_window_hours: int = 24) -> None: ...
+    def __init__(self, sentiment_window_hours: int = 24, max_data_age_hours: int = 1) -> None: ...
+    
+    def calculate_confidence(
+        self,
+        session: Session,
+        timestamp: datetime,
+        rsi_signal: Optional[str],
+        macd_signal: Optional[str],
+        ma_signal: Optional[str],
+        sentiment_signal: Optional[str],
+        tech_indicators: TechnicalIndicators,
+        sentiment_data: Optional[Dict[str, float]]
+    ) -> float: ...
     
     def analyze(self, session: Session, timestamp: datetime) -> Optional[Dict[str, Any]]: ...
+    
+    def _calculate_agreement_confidence(
+        self,
+        rsi_signal: Optional[str],
+        macd_signal: Optional[str],
+        ma_signal: Optional[str],
+        sentiment_signal: Optional[str]
+    ) -> float: ...
+    
+    def _calculate_recency_factor(
+        self,
+        session: Session,
+        timestamp: datetime,
+        tech_indicators: TechnicalIndicators
+    ) -> float: ...
+    
+    def _calculate_volatility_factor(
+        self,
+        session: Session,
+        timestamp: datetime
+    ) -> float: ...
+    
+    def _calculate_sentiment_volume_factor(
+        self,
+        session: Session,
+        timestamp: datetime,
+        sentiment_data: Optional[Dict[str, float]]
+    ) -> float: ...
     
     def _fetch_latest_technical_indicators(
         self,
