@@ -202,4 +202,40 @@ Started: 2026-02-12T12:12:00Z
 - Total: 143 tests passing
 - Type checking verified manually
 - **Learnings:** SMA is straightforward (average of last period values), EMA is more complex (weighted to recent prices). SMA 50 > SMA 200 indicates uptrend (golden cross), SMA 50 < SMA 200 indicates downtrend (death cross). EMA vs SMA relationship depends on price distribution - EMA isn't always higher in uptrend because it starts with SMA and only gradually adapts. Technical indicators pattern remains consistent: filter NaN, check minimum samples, calculate, save with upsert logic. Test database fixtures should use tmp_path and temp_db_path pattern (not :memory:) to match existing test structure.
+
+---
+
+## 2026-02-12T15:32:00Z - US-007: Create sentiment data collection models and interface
+- Created sentiment.py module in src/btc_monitor/sentiment.py
+- Implemented SentimentSource enum with four valid sources: twitter, reddit, news, research
+- Created SentimentEntry pydantic BaseModel for validating sentiment data:
+  - source field accepts string or SentimentSource, converts to lowercase
+  - score field validates range [-1.0, 1.0] with custom error message
+  - content field is optional string
+  - timestamp field defaults to current UTC time
+  - to_sentiment_data() method converts to SentimentData ORM model
+- Implemented SentimentCollector abstract base class:
+  - Abstract collect() method raises NotImplementedError
+  - Serves as interface for concrete sentiment collectors (e.g., TwitterCollector, RedditCollector)
+- Validation details:
+  - Source validator accepts case-insensitive strings and converts to SentimentSource enum
+  - Score validator uses custom validation with clear error messages
+  - Invalid sources raise ValueError with list of valid sources
+- Created comprehensive test suite in tests/test_sentiment.py with 24 tests covering:
+  - SentimentSource enum values and string conversion
+  - SentimentEntry creation with valid and invalid inputs
+  - Optional content handling
+  - Default timestamp behavior
+  - Score validation: boundary values (-1.0, 1.0), out of range errors
+  - Source validation: case-insensitive conversion, invalid source rejection
+  - to_sentiment_data() conversion to ORM model
+  - SentimentCollector abstract class behavior
+  - Concrete collector implementation example
+  - Edge cases: very long content, empty content, unicode content, decimal precision
+- All 24 new tests pass
+- All 143 existing tests continue to pass
+- Total: 167 tests passing
+- Type checking verified manually (mypy duplicate module issue is known limitation)
+- **Learnings:** Pydantic 2.0+ uses field_validator with mode="before" for pre-validation transformations. When using custom validators, avoid Field(ge/le) constraints because pydantic validates those before custom validators run. The source field needs Union[str, SentimentSource] type to accept both strings and enums. datetime.utcnow() is deprecated in Python 3.12+; use datetime.now(timezone.utc) instead. Pydantic models provide clean validation and can easily convert to ORM models for database storage. Abstract base classes with @abstractmethod ensure all subclasses implement required methods.
+
 ---
