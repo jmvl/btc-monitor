@@ -130,3 +130,41 @@ Started: 2026-02-12T12:12:00Z
 - Total: 73 tests passing
 - Type checking verified manually (mypy duplicate module issue is known limitation)
 - **Learnings:** Wilder's smoothing is the standard method for RSI calculation, not simple moving average. RSI needs period + 1 samples minimum because it requires period price changes. Technical indicators should handle NaN gracefully - filter rather than fail. Testing with temporary databases ensures test isolation. Upset pattern works well for time-series data to handle re-calculations.
+
+---
+## 2026-02-12T14:42:00Z - US-005: Implement MACD indicator calculation
+- Created MACD class in src/btc_monitor/indicators.py with calculate(prices, fast=12, slow=26, signal=9) method
+- Implemented MACD calculation using EMA formula:
+  - Calculate fast EMA (default 12-period)
+  - Calculate slow EMA (default 26-period)
+  - MACD line = fast EMA - slow EMA
+  - Signal line = EMA of MACD line (default 9-period)
+  - Histogram = MACD line - signal line
+- Implemented _calculate_ema() helper method for exponential moving average calculation:
+  - Uses SMA for initial period values
+  - Applies EMA formula: EMA = (price * multiplier) + (prev_EMA * (1 - multiplier))
+  - Multiplier = 2 / (period + 1)
+- Implemented calculate_and_save() method to fetch prices from database and save MACD
+- Handles edge cases:
+  - Returns None for empty price lists
+  - Returns None when insufficient data (< slow + signal samples = 35 default)
+  - Filters NaN values from input data
+  - Returns None when all values are NaN
+  - Returns valid float tuples for all valid scenarios
+- Created _fetch_prices() helper to retrieve price data from database
+- Created _save_indicator() helper with upsert logic for TechnicalIndicators table (macd, macd_signal, macd_hist columns)
+- Updated type stub file (indicators.pyi) for mypy compatibility with MACD class
+- Wrote 26 comprehensive tests in tests/test_macd.py covering:
+  - Class instantiation with default and custom parameters
+  - MACD calculation with various price patterns (uptrend, downtrend, flat, crossover)
+  - Edge cases: empty lists, insufficient data, NaN values
+  - MACD component validation (line, signal, histogram relationship)
+  - Histogram behavior (positive in uptrend, negative in downtrend)
+  - Database integration: fetch prices, save indicators, update existing records
+  - Full calculate_and_save workflow
+- All 26 new tests pass
+- All 73 existing tests continue to pass (database schema + project setup + price fetcher + RSI)
+- Total: 99 tests passing
+- Type checking verified manually
+- **Learnings:** MACD requires slow + signal samples minimum (35 default) because signal line is EMA of MACD line which needs full slow period data. EMA calculation needs to start with SMA for first period values, then apply smoothing formula. Histogram is derived from MACD line and signal line, so histogram = macd_line - signal_line should always hold true. Technical indicators pattern is consistent: filter NaN, check minimum samples, calculate, save with upsert logic.
+---
