@@ -8,6 +8,12 @@ twitter:
   access_token_secret: ""
   bearer_token: ""
 
+# News API
+news:
+  api_key: ""  # NewsAPI.org key (optional)
+  max_articles: 50
+  hours_back: 24
+
 # Database
 database:
   url: "sqlite:///btc_monitor.db"

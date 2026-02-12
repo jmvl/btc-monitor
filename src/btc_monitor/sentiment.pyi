@@ -3,7 +3,7 @@
 from abc import ABC
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -73,4 +73,53 @@ class TwitterSentimentCollector(SentimentCollector):
     
     def collect_and_save(self, db_path: Optional[str] = None) -> int:
         """Collect sentiment data and save to database."""
+        ...
+
+
+class NewsSentimentCollector(SentimentCollector):
+    """Collector for news sentiment data about Bitcoin."""
+    
+    BULLISH_KEYWORDS: List[str]
+    BEARISH_KEYWORDS: List[str]
+    NEWS_SOURCES: List[Dict[str, str]]
+    
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        max_articles: int = 50,
+        hours_back: int = 24,
+    ) -> None:
+        """Initialize news sentiment collector."""
+        ...
+    
+    def _get_session(self) -> Any:
+        """Get or create HTTP session."""
+        ...
+    
+    def _analyze_sentiment(self, text: str) -> float:
+        """Analyze sentiment of text using keyword matching."""
+        ...
+    
+    def _fetch_from_newsapi(self) -> List[Dict[str, Any]]:
+        """Fetch news articles from NewsAPI."""
+        ...
+    
+    def _scrape_news_site(self, source: Dict[str, str]) -> List[Dict[str, Any]]:
+        """Scrape news articles from a crypto news site."""
+        ...
+    
+    def _scrape_news_sources(self) -> List[Dict[str, Any]]:
+        """Scrape news from configured crypto news sites."""
+        ...
+    
+    def collect(self) -> List[SentimentEntry]:
+        """Collect sentiment data from news sources."""
+        ...
+    
+    def collect_and_save(self, db_path: Optional[str] = None) -> int:
+        """Collect sentiment data and save to database."""
+        ...
+    
+    def __del__(self) -> None:
+        """Clean up HTTP session when collector is destroyed."""
         ...
