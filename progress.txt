@@ -98,3 +98,35 @@ Started: 2026-02-12T12:12:00Z
 - Type checking verified manually with import tests
 - **Learnings:** yfinance API can be slow during market hours; retry with exponential backoff is essential for reliability. Upsert logic prevents duplicate records when refetching historical data. Testing with temporary databases ensures isolation between tests. datetime.utcnow() is deprecated in Python 3.12+; use datetime.now(datetime.UTC) instead (noted in warnings).
 ---
+## 2026-02-12T14:22:00Z - US-004: Implement RSI indicator calculation
+- Created RSI class in src/btc_monitor/indicators.py with calculate(prices, period=14) method
+- Implemented RSI calculation using Wilder's smoothing method:
+  - Calculate price changes (gains and losses)
+  - Compute average gain and average loss over the period
+  - Use Wilder's smoothing for subsequent values
+  - Calculate Relative Strength (RS) = avg_gain / avg_loss
+  - Calculate RSI = 100 - (100 / (1 + RS))
+- Implemented calculate_and_save() method to fetch prices from database and save RSI
+- Handles edge cases:
+  - Returns None for empty price lists
+  - Returns None when insufficient data (< period + 1 samples)
+  - Filters NaN values from input data
+  - Returns None when all values are NaN
+  - Returns 50.0 when no price changes (flat market)
+  - Returns 100.0 when all gains and no losses
+  - Clamps RSI values to valid range [0, 100]
+- Created _fetch_prices() helper to retrieve price data from database
+- Created _save_indicator() helper with upsert logic for TechnicalIndicators table
+- Created type stub file (indicators.pyi) for mypy compatibility
+- Wrote 22 comprehensive tests in tests/test_rsi.py covering:
+  - Class instantiation with default and custom periods
+  - RSI calculation with various price patterns
+  - Edge cases: empty lists, insufficient data, NaN values
+  - RSI bounds validation (0-100)
+  - Database integration: fetch prices, save indicators, update existing records
+  - Full calculate_and_save workflow
+- All 22 new tests pass
+- All 51 existing tests continue to pass (database schema + project setup + price fetcher)
+- Total: 73 tests passing
+- Type checking verified manually (mypy duplicate module issue is known limitation)
+- **Learnings:** Wilder's smoothing is the standard method for RSI calculation, not simple moving average. RSI needs period + 1 samples minimum because it requires period price changes. Technical indicators should handle NaN gracefully - filter rather than fail. Testing with temporary databases ensures test isolation. Upset pattern works well for time-series data to handle re-calculations.
