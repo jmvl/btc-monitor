@@ -4,6 +4,27 @@ Task: Create a Python script that monitors BTC/USD price, technical analysis ind
 Started: 2026-02-12T12:12:00Z
 
 ## Codebase Patterns
-(add patterns here as you discover them)
+- Project uses pyproject.toml for dependency management with setuptools.build_meta
+- Package structure: src/btc_monitor/ for source code
+- Config files in config/ directory with YAML format
+- Tests use pytest with configuration in pytest.ini
+- Type checking with mypy, config in mypy.ini
+- pip install requires --break-system-packages in this environment
+- Dependencies include pandas, numpy, yfinance, tweepy, requests, beautifulsoup4, TA-Lib, SQLAlchemy, pydantic
 
+---
+
+## 2026-02-12T12:12:00Z - US-001: Initialize Python project with dependencies and structure
+- Created pyproject.toml with all required dependencies (pandas, numpy, yfinance, tweepy, requests, beautifulsoup4, TA-Lib, SQLAlchemy, pydantic)
+- Set up standard Python package structure (src/btc_monitor/, tests/, config/)
+- Added __init__.py files to all package directories
+- Created pytest.ini configuration for test discovery
+- Created mypy.ini configuration for type checking
+- Created .gitignore with Python-specific patterns (__pycache__, .venv, *.py)
+- Created config/config.yaml with template configuration for Twitter API, database, data sources, and analysis parameters
+- Wrote comprehensive tests in tests/test_project_setup.py covering directory structure, configuration files, and package importability
+- All 8 tests pass
+- Type checking passes with mypy
+- Package installs successfully with `pip install -e .`
+- **Learnings:** This project uses modern Python packaging with pyproject.toml. The test setup validates project structure which helps catch configuration issues early. The config directory uses YAML for easy manual editing.
 ---
