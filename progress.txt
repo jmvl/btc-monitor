@@ -28,3 +28,13 @@ Started: 2026-02-12T12:12:00Z
 - Package installs successfully with `pip install -e .`
 - **Learnings:** This project uses modern Python packaging with pyproject.toml. The test setup validates project structure which helps catch configuration issues early. The config directory uses YAML for easy manual editing.
 ---
+
+## 2026-02-12T12:41:00Z - US-001 (retry): Fix test_btc_monitor_package_importable to fail on ImportError
+- Fixed test_btc_monitor_package_importable to properly raise AssertionError on ImportError instead of silently passing
+- Removed unnecessary __version__ attribute check (package doesn't need it at this stage)
+- Verified package can be installed with `pip install -e . --break-system-packages`
+- Verified package can be imported successfully with `python3 -c "import btc_monitor"`
+- All 8 tests pass (including the fixed test)
+- Type checking passes with mypy
+- **Learnings:** Tests should never silently pass on errors - use proper assertions to catch issues early. The --break-system-packages flag is needed in this environment due to externally-managed-environment restrictions.
+---
