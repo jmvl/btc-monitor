@@ -434,3 +434,32 @@ Started: 2026-02-12T12:12:00Z
 - Package installs successfully with pip install -e .
 - **Learnings:** Confidence scoring requires multi-factor analysis, not just signal agreement. Data recency is critical - stale indicators need penalties. Price volatility calculated as standard deviation of returns provides a good measure of market noise. Sentiment volume factor combines both quantity (data points) and diversity (number of sources) for better signal quality assessment. SQLAlchemy returns naive datetimes even when storing timezone-aware ones, requiring explicit timezone handling. Confidence is more meaningful as a percentage (0-100) for human interpretation, but stored as 0-1.0 for database efficiency.
 ---
+## 2026-02-12T17:12:00Z - US-013: Create configuration management system
+- Created Config class using pydantic in src/btc_monitor/config.py
+- Implemented YAML file loading with from_yaml() class method
+- Added environment variable support via pydantic-settings (prefix: BTC_MONITOR_, nested delimiter: __)
+- Created configuration models: TwitterConfig, NewsConfig, ResearchConfig, DatabaseConfig, DataSourcesConfig, AnalysisConfig, LoggingConfig
+- Each config section has validation with Field constraints and custom validators
+- Added convenience properties: twitter_api_key, news_api_key, refresh_interval, rsi_overbought, rsi_oversold, db_path, log_level
+- Implemented save_yaml() method to persist configuration changes
+- Added load_config() helper function to load configuration with default path resolution
+- Created config/config.example.yaml with placeholder values for all settings
+- Created type stub file (config.pyi) for mypy compatibility
+- Updated pyproject.toml with pydantic-settings>=2.0.0 and pyyaml>=6.0.0 dependencies
+- Wrote 43 comprehensive tests in tests/test_config.py covering:
+  - All config model classes with default and custom values
+  - Validation for all numeric fields (min/max constraints)
+  - Custom validators: symbols list, moving averages sorting, MACD slow > fast requirement, log level
+  - Convenience properties for backward compatibility
+  - YAML loading: file not found, invalid YAML, empty file, valid config, invalid values
+  - YAML saving and reloading
+  - Environment variable overrides (direct instantiation, nested fields)
+  - load_config() function with default and custom paths
+  - Real config files: project config.yaml and example file
+- All 43 new tests pass
+- All 329 existing tests continue to pass
+- Total: 372 tests passing
+- Type checking verified with manual import test
+- Package installs successfully with pip install -e .
+- **Learnings:** Pydantic-settings BaseSettings is ideal for configuration with env var support. Environment variables use format: BTC_MONITOR_<SECTION>__<FIELD> (e.g., BTC_MONITOR_NEWS__API_KEY). YAML loading with model_validate() respects env vars from BaseSettings but explicit YAML values take precedence. Field validators should use mode="before" for pre-validation transformations. Type stub files (.pyi) are needed for mypy with pydantic models. Config files should have example templates for easy setup.
+---
