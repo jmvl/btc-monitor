@@ -11,6 +11,14 @@ Started: 2026-02-12T12:12:00Z
 - Type checking with mypy, config in mypy.ini
 - pip install requires --break-system-packages in this environment
 - Dependencies include pandas, numpy, yfinance, tweepy, requests, beautifulsoup4, TA-Lib, SQLAlchemy, pydantic
+- SQLAlchemy 2.0 uses DeclarativeBase and Mapped types from sqlalchemy.orm
+- For Python 3.9 compatibility, use Union[X, Y] instead of X | Y for type hints
+- Session is imported from sqlalchemy.orm, not from sqlalchemy directly
+- py.typed marker and .pyi stub files are needed for PEP 561 type checking compliance
+- Data fetching uses yfinance library for market data
+- API calls implement exponential backoff retry pattern for reliability ( configurable max_retries, initial_backoff, max_backoff)
+- Database operations use upsert pattern: check if exists, update if yes, insert if no
+- Type stub files (.pyi) are created alongside .py files for mypy compatibility with complex types
 
 ---
 
@@ -37,4 +45,56 @@ Started: 2026-02-12T12:12:00Z
 - All 8 tests pass (including the fixed test)
 - Type checking passes with mypy
 - **Learnings:** Tests should never silently pass on errors - use proper assertions to catch issues early. The --break-system-packages flag is needed in this environment due to externally-managed-environment restrictions.
+
+---
+
+## 2026-02-12T13:46:00Z - US-002: Create database schema for price and indicator data
+- Created SQLAlchemy models in src/btc_monitor/models.py with DeclarativeBase
+- Implemented PriceData model with timestamp (PK), price, volume columns
+- Implemented TechnicalIndicators model with timestamp, rsi, macd, macd_signal, macd_hist, sma_50, sma_200 columns
+- Implemented SentimentData model with timestamp, source, score, content columns
+- Implemented TrendAnalysis model with timestamp, trend, confidence, indicators_summary columns
+- Added indexes on timestamp columns in all models for query performance
+- Created database initialization script (init_db.py and src/btc_monitor/database.py)
+- Added type stub files (.pyi) for models and database modules
+- Added py.typed marker to enable type checking for the package
+- Updated pyproject.toml to include py.typed and .pyi files in package-data
+- Wrote comprehensive tests in tests/test_database_schema.py (22 tests) covering:
+  - Database initialization
+  - Model columns and constraints
+  - Primary keys and foreign keys
+  - Indexes
+  - Data insertion and retrieval
+  - Relationships between models
+- All 30 tests pass (22 new + 8 existing)
+- Type annotations verified with manual typecheck script
+- Database file (btc_monitor.db) is created successfully with all tables
+- **Learnings:** SQLAlchemy 2.0 uses DeclarativeBase instead of declarative_base(). Mapped types are preferred over Column types in modern SQLAlchemy. Type stub files (.pyi) help with mypy when using complex ORM types. The py.typed marker is required for PEP 561 compliance. Union[Path, str] is needed for Python 3.9 compatibility instead of the | operator. Session is imported from sqlalchemy.orm, not sqlalchemy.
+---
+
+## 2026-02-12T14:02:00Z - US-003: Implement BTC/USD price data fetcher
+- Created PriceFetcher class in src/btc_monitor/fetchers.py
+- Implemented get_current_price() method using yfinance to fetch current BTC/USD price
+- Price validation ensures price is in valid range (0 < price < 1,000,000)
+- Implemented get_historical_data(start_date, end_date) to fetch historical price data with volume
+- Supports both datetime objects and string dates (YYYY-MM-DD format)
+- Created save_to_database() method to store price data in PriceData table
+- Implements upsert logic: updates existing records or inserts new ones
+- Added fetch_and_save_current_price() and fetch_and_save_historical_data() convenience methods
+- Implemented exponential backoff retry mechanism for API rate limits and errors
+- Configurable max_retries, initial_backoff, and max_backoff parameters
+- Comprehensive error handling: API errors caught and logged without crashing
+- Created type stub file (fetchers.pyi) for mypy compatibility
+- Wrote 21 comprehensive tests in tests/test_price_fetcher.py covering:
+  - Class instantiation with default and custom parameters
+  - Current price fetching and validation
+  - Historical data fetching with volume data
+  - Database save operations (insert and upsert)
+  - API error handling and graceful degradation
+  - Retry with backoff mechanism
+- All 21 new tests pass
+- All 30 existing tests continue to pass (database schema + project setup)
+- Total: 51 tests passing
+- Type checking verified manually with import tests
+- **Learnings:** yfinance API can be slow during market hours; retry with exponential backoff is essential for reliability. Upsert logic prevents duplicate records when refetching historical data. Testing with temporary databases ensures isolation between tests. datetime.utcnow() is deprecated in Python 3.12+; use datetime.now(datetime.UTC) instead (noted in warnings).
 ---
