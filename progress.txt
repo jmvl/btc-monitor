@@ -399,3 +399,38 @@ Started: 2026-02-12T12:12:00Z
 - **Learnings:** Trend analysis requires combining multiple signal types with different logic. Confidence scoring based on signal agreement helps identify strong vs weak trends. The upsert pattern in TrendAnalysis is essential because analysis can be re-run for the same timestamp. TechnicalIndicators has a required foreign key (price_timestamp) that must be provided when inserting records. Sentiment window filtering uses timedelta calculations to exclude old data. Signal combination logic handles cases where some signals are None (unavailable) gracefully.
 
 ---
+## 2026-02-12T16:52:00Z - US-012: Implement confidence score calculation
+- Added calculate_confidence() method to TrendAnalyzer
+- Confidence based on 4 factors:
+  1. Agreement between indicators (higher when all agree)
+  2. Data recency (penalty for stale data >1 hour old)
+  3. Volatility context (penalty for high volatility >10% daily)
+  4. Sentiment volume (bonus for more data points and sources)
+- Implemented 4 helper methods:
+  - _calculate_agreement_confidence(): 0-100 based on signal agreement
+  - _calculate_recency_factor(): 0.0-1.0 based on data freshness
+  - _calculate_volatility_factor(): 0.0-1.0 based on price volatility (std dev of returns)
+  - _calculate_sentiment_volume_factor(): 0.0-1.0 based on sentiment data count and sources
+- Added max_data_age_hours parameter to TrendAnalyzer __init__ (default 1 hour)
+- Confidence output as percentage (0-100) from calculate_confidence()
+- Converted to 0-1.0 format when saving to TrendAnalysis.confidence column
+- Handled timezone-aware/naive datetime compatibility in _calculate_recency_factor()
+- Updated analyze() method to use calculate_confidence() instead of simple agreement
+- Updated type stub file (analyzer.pyi) with new method signatures
+- Wrote 29 comprehensive tests in tests/test_confidence.py covering:
+  - TrendAnalyzer initialization with max_data_age_hours parameter
+  - Agreement confidence: all bullish/bearish, mixed, equal, with None values, all None
+  - Recency factor: fresh data, stale data, very stale data
+  - Volatility factor: low, normal, high volatility, insufficient data
+  - Sentiment volume factor: no data, low volume, medium volume, high volume, multiple sources
+  - Combined confidence: all bullish with fresh data, mixed signals, stale data, high volatility, low volume, no sentiment
+  - Confidence range validation (0-100)
+  - Complete analyze() workflow with confidence
+  - Confidence saved to database correctly
+- All 29 new tests pass
+- All 300 existing tests continue to pass
+- Total: 329 tests passing
+- Type checking verified manually (mypy duplicate module issue is known limitation)
+- Package installs successfully with pip install -e .
+- **Learnings:** Confidence scoring requires multi-factor analysis, not just signal agreement. Data recency is critical - stale indicators need penalties. Price volatility calculated as standard deviation of returns provides a good measure of market noise. Sentiment volume factor combines both quantity (data points) and diversity (number of sources) for better signal quality assessment. SQLAlchemy returns naive datetimes even when storing timezone-aware ones, requiring explicit timezone handling. Confidence is more meaningful as a percentage (0-100) for human interpretation, but stored as 0-1.0 for database efficiency.
+---
