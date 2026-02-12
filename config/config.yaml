@@ -14,6 +14,11 @@ news:
   max_articles: 50
   hours_back: 24
 
+# Research
+research:
+  max_items: 30
+  hours_back: 48
+
 # Database
 database:
   url: "sqlite:///btc_monitor.db"

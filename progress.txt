@@ -239,3 +239,69 @@ Started: 2026-02-12T12:12:00Z
 - **Learnings:** Pydantic 2.0+ uses field_validator with mode="before" for pre-validation transformations. When using custom validators, avoid Field(ge/le) constraints because pydantic validates those before custom validators run. The source field needs Union[str, SentimentSource] type to accept both strings and enums. datetime.utcnow() is deprecated in Python 3.12+; use datetime.now(timezone.utc) instead. Pydantic models provide clean validation and can easily convert to ORM models for database storage. Abstract base classes with @abstractmethod ensure all subclasses implement required methods.
 
 ---
+## 2026-02-12T15:57:00Z - US-009: Implement news sentiment collector
+- Created NewsSentimentCollector class in src/btc_monitor/sentiment.py extending SentimentCollector
+- Implemented dual-mode news fetching:
+  - Primary: NewsAPI.org (if API key provided)
+  - Fallback: Web scraping from CoinDesk and Cointelegraph
+- Implemented _get_session() method to create and reuse HTTP session with proper User-Agent
+- Implemented _analyze_sentiment() method for keyword-based sentiment scoring:
+  - Bullish keywords: bullish, rally, surge, gains, uptrend, breakout, soar, skyrocket, bull market, positive, optimistic, strong, support, resistance broken, price surge, momentum, growth, expansion, record high
+  - Bearish keywords: bearish, crash, plunge, drop, losses, downtrend, collapse, bear market, negative, pessimistic, weak, support broken, resistance, price drop, sell-off, decline, fall, slump, correction, dump
+  - Score calculation: (bullish_count - bearish_count) / total_keywords
+  - Returns 0.0 for neutral text (no keywords found)
+- Implemented _fetch_from_newsapi() method:
+  - Uses NewsAPI v2 /everything endpoint
+  - Queries for "bitcoin OR btc" in English
+  - Filters by date (from hours_back parameter)
+  - Limits to min(max_articles, 100) articles (NewsAPI max pageSize is 100)
+  - Raises ValueError if API key missing or API returns error status
+  - Handles HTTP errors gracefully
+- Implemented _scrape_news_site() method:
+  - Uses BeautifulSoup to parse HTML
+  - Extracts headlines using configurable CSS selectors
+  - Handles relative URLs by prepending base URL
+  - Gracefully handles HTTP errors and malformed HTML
+  - Logs errors without stopping collection
+- Implemented _scrape_news_sources() method:
+  - Scrapes multiple configured crypto news sites
+  - Respects max_articles limit across all sources
+  - Returns aggregated article list
+- Implemented collect() method:
+  - Prefers NewsAPI if API key provided
+  - Falls back to web scraping on API error or missing key
+  - Filters articles by publication date (within hours_back)
+  - Handles missing/invalid publishedAt timestamps
+  - Skips articles with empty content
+  - Limits content field to 500 characters
+  - Creates SentimentEntry objects with source='news'
+- Implemented collect_and_save() method to save sentiment data to SentimentData table
+- Added __del__ method to clean up HTTP session when collector is destroyed
+- Updated config/config.yaml to include news API configuration (api_key, max_articles, hours_back)
+- Updated type stub file (sentiment.pyi) with NewsSentimentCollector definitions
+- Wrote 35 comprehensive tests in tests/test_news_sentiment.py covering:
+  - Collector initialization with custom and default parameters
+  - Cutoff time calculation based on hours_back
+  - Sentiment analysis: bullish, bearish, neutral, mixed keywords
+  - Edge cases: empty text, case insensitivity
+  - HTTP session creation and reuse
+  - User-Agent header configuration
+  - NewsAPI fetching: success, no API key, HTTP errors, API errors
+  - NewsAPI max_articles and time filter handling
+  - Web scraping: success, HTTP errors, no headlines, malformed HTML
+  - Scraping respects max_articles limit
+  - News sources configuration validation
+  - Bullish and bearish keyword lists
+  - collect() method: uses NewsAPI with key, falls back to scraping on error, uses scraping without key
+  - Article filtering: by age (hours_back), missing timestamps, empty content
+  - Content length limiting
+  - Database integration: collect_and_save(), empty results
+  - Session cleanup on deletion
+- All 35 new tests pass
+- All 187 existing tests continue to pass
+- Total: 222 tests passing
+- Type checking verified manually (mypy duplicate module issue is known limitation)
+- Package imports successfully
+- **Learnings:** Dual-mode architecture (API + scraping) provides reliability and fallback. NewsAPI has pageSize limit of 100, so max_articles parameter is clamped. Web scraping with BeautifulSoup is fragile but works as fallback. Relative URL handling is necessary for complete links. CSS selectors need to be updated if site structure changes. Content length limiting prevents database bloat from long articles. Graceful degradation (return empty list on errors) is better than crashing for automated systems. HTTP session reuse improves performance and connection management.
+
+---

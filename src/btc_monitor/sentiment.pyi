@@ -123,3 +123,56 @@ class NewsSentimentCollector(SentimentCollector):
     def __del__(self) -> None:
         """Clean up HTTP session when collector is destroyed."""
         ...
+
+
+class ResearchCollector(SentimentCollector):
+    """Collector for research data from online sources about Bitcoin."""
+    
+    BULLISH_KEYWORDS: List[str]
+    BEARISH_KEYWORDS: List[str]
+    RESEARCH_SOURCES: List[Dict[str, str]]
+    
+    def __init__(
+        self,
+        max_items: int = 30,
+        hours_back: int = 48,
+        current_price: Optional[float] = None,
+    ) -> None:
+        """Initialize research collector."""
+        ...
+    
+    def _get_session(self) -> Any:
+        """Get or create HTTP session."""
+        ...
+    
+    def _analyze_sentiment(self, text: str) -> float:
+        """Analyze sentiment of text using keyword matching."""
+        ...
+    
+    def _extract_price_target(self, text: str) -> Optional[float]:
+        """Extract price target from text."""
+        ...
+    
+    def _score_price_target(self, target: float) -> float:
+        """Score price target based on current price."""
+        ...
+    
+    def _scrape_research_site(self, source: Dict[str, str]) -> List[Dict[str, Any]]:
+        """Scrape research from a site."""
+        ...
+    
+    def _scrape_research_sources(self) -> List[Dict[str, Any]]:
+        """Scrape research from configured sources."""
+        ...
+    
+    def collect(self) -> List[SentimentEntry]:
+        """Collect sentiment data from research sources."""
+        ...
+    
+    def collect_and_save(self, db_path: Optional[str] = None) -> int:
+        """Collect sentiment data and save to database."""
+        ...
+    
+    def __del__(self) -> None:
+        """Clean up HTTP session when collector is destroyed."""
+        ...
