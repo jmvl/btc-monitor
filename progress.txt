@@ -168,3 +168,38 @@ Started: 2026-02-12T12:12:00Z
 - Type checking verified manually
 - **Learnings:** MACD requires slow + signal samples minimum (35 default) because signal line is EMA of MACD line which needs full slow period data. EMA calculation needs to start with SMA for first period values, then apply smoothing formula. Histogram is derived from MACD line and signal line, so histogram = macd_line - signal_line should always hold true. Technical indicators pattern is consistent: filter NaN, check minimum samples, calculate, save with upsert logic.
 ---
+## 2026-02-12T14:57:00Z - US-006: Implement moving averages calculation
+- Created MovingAverages class in src/btc_monitor/indicators.py with calculate_sma(prices, period) and calculate_ema(prices, period) methods
+- Implemented SMA (Simple Moving Average) calculation: average of last 'period' prices
+- Implemented EMA (Exponential Moving Average) calculation:
+  - Uses SMA for initial period values
+  - Applies EMA formula: EMA = (price * multiplier) + (prev_EMA * (1 - multiplier))
+  - Multiplier = 2 / (period + 1)
+- Implemented calculate_and_save() method to fetch prices from database and save SMA values
+- Calculates 50-day SMA (sma_50) and 200-day SMA (sma_200) as standard benchmarks
+- Handles edge cases:
+  - Returns None for empty price lists
+  - Returns None when insufficient data (< period samples for SMA, < period samples for EMA)
+  - Filters NaN values from input data
+  - Returns None when all values are NaN
+  - Saves SMA 50 even if SMA 200 cannot be calculated (partial data availability)
+- Created _fetch_prices() helper to retrieve price data from database (fetches up to 200 samples)
+- Created _save_indicator() helper with upsert logic for TechnicalIndicators table (sma_50, sma_200 columns)
+- Updated type stub file (indicators.pyi) for mypy compatibility with MovingAverages class
+- Wrote 44 comprehensive tests in tests/test_moving_averages.py covering:
+  - Class instantiation with default and custom periods
+  - SMA calculation with various price patterns (basic, long series, increasing, decreasing)
+  - SMA edge cases: empty lists, insufficient data, NaN values, exact period count
+  - EMA calculation with various price patterns
+  - EMA edge cases: matches SMA for first value, constant prices, insufficient data, NaN values
+  - EMA with standard periods: 12, 26, 50, 200
+  - Database integration: fetch prices, save indicators, update existing records
+  - calculate_and_save workflow: SMA 50 only, both SMAs, insufficient data
+  - Trend analysis: uptrend (SMA 50 > SMA 200), downtrend (SMA 50 < SMA 200), flat market (SMA 50 == SMA 200)
+  - SMA vs EMA differences in various market conditions
+- All 44 new tests pass
+- All 99 existing tests continue to pass (database schema + project setup + price fetcher + RSI + MACD)
+- Total: 143 tests passing
+- Type checking verified manually
+- **Learnings:** SMA is straightforward (average of last period values), EMA is more complex (weighted to recent prices). SMA 50 > SMA 200 indicates uptrend (golden cross), SMA 50 < SMA 200 indicates downtrend (death cross). EMA vs SMA relationship depends on price distribution - EMA isn't always higher in uptrend because it starts with SMA and only gradually adapts. Technical indicators pattern remains consistent: filter NaN, check minimum samples, calculate, save with upsert logic. Test database fixtures should use tmp_path and temp_db_path pattern (not :memory:) to match existing test structure.
+---
