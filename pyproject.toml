@@ -49,7 +49,7 @@ Repository = "https://github.com/example/btc-monitor"
 where = ["src"]
 
 [tool.setuptools.package-data]
-"btc_monitor" = ["config/*.yaml", "config/*.yml"]
+"btc_monitor" = ["config/*.yaml", "config/*.yml", "py.typed", "*.pyi"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
