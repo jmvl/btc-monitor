@@ -383,3 +383,194 @@ class MACD:
             indicator.macd_hist = histogram
         
         session.commit()
+
+
+class MovingAverages:
+    """Moving Averages (SMA and EMA) indicator calculator."""
+    
+    def __init__(self, sma_50_period: int = 50, sma_200_period: int = 200):
+        """
+        Initialize Moving Averages calculator.
+        
+        Args:
+            sma_50_period: Period for 50-day SMA. Default is 50.
+            sma_200_period: Period for 200-day SMA. Default is 200.
+        """
+        self.sma_50_period = sma_50_period
+        self.sma_200_period = sma_200_period
+    
+    def calculate_sma(self, prices: List[float], period: int) -> Optional[float]:
+        """
+        Calculate Simple Moving Average (SMA).
+        
+        Args:
+            prices: List of closing prices in chronological order (oldest first).
+            period: Period for SMA calculation.
+        
+        Returns:
+            SMA value or None if insufficient data.
+        
+        Note:
+            Returns None if there are fewer than period prices.
+        """
+        # Handle edge cases
+        if not prices:
+            return None
+        
+        # Filter out NaN values
+        valid_prices = [p for p in prices if not (isinstance(p, float) and math.isnan(p))]
+        
+        # Check for sufficient data
+        if len(valid_prices) < period:
+            return None
+        
+        # Calculate SMA (average of last 'period' prices)
+        # Take the last 'period' prices for the current SMA value
+        recent_prices = valid_prices[-period:]
+        sma = sum(recent_prices) / period
+        
+        return sma
+    
+    def calculate_ema(self, prices: List[float], period: int) -> Optional[float]:
+        """
+        Calculate Exponential Moving Average (EMA).
+        
+        Args:
+            prices: List of closing prices in chronological order (oldest first).
+            period: EMA period.
+        
+        Returns:
+            EMA value for the last price in the series or None if insufficient data.
+        
+        Note:
+            Returns None if there are fewer than period prices.
+        """
+        # Handle edge cases
+        if not prices:
+            return None
+        
+        # Filter out NaN values
+        valid_prices = [p for p in prices if not (isinstance(p, float) and math.isnan(p))]
+        
+        # Check for sufficient data
+        if len(valid_prices) < period:
+            return None
+        
+        # Calculate multiplier
+        multiplier = 2.0 / (period + 1)
+        
+        # Start with SMA for first period values
+        sma = sum(valid_prices[:period]) / period
+        ema = sma
+        
+        # Apply EMA formula for remaining values
+        for price in valid_prices[period:]:
+            ema = (price * multiplier) + (ema * (1 - multiplier))
+        
+        return ema
+    
+    def calculate_and_save(
+        self,
+        session: Session,
+        timestamp: datetime
+    ) -> Optional[tuple]:
+        """
+        Calculate SMA 50 and SMA 200 for a given timestamp and save to database.
+        
+        Args:
+            session: SQLAlchemy database session.
+            timestamp: The timestamp for which to calculate moving averages.
+        
+        Returns:
+            Tuple of (sma_50, sma_200) or None if calculation failed.
+        """
+        # Fetch price data needed for SMA 200 calculation
+        # Need at least 200 samples for SMA 200
+        prices = self._fetch_prices(session, timestamp)
+        
+        if prices is None:
+            return None
+        
+        # Calculate SMA 50
+        sma_50 = self.calculate_sma(prices, self.sma_50_period)
+        
+        # Calculate SMA 200
+        sma_200 = self.calculate_sma(prices, self.sma_200_period)
+        
+        # If we can calculate at least SMA 50, save it
+        if sma_50 is None:
+            return None
+        
+        # Save to database
+        self._save_indicator(session, timestamp, sma_50, sma_200)
+        
+        return (sma_50, sma_200)
+    
+    def _fetch_prices(
+        self,
+        session: Session,
+        timestamp: datetime
+    ) -> Optional[List[float]]:
+        """
+        Fetch historical prices needed for SMA calculation.
+        
+        Args:
+            session: SQLAlchemy database session.
+            timestamp: The end timestamp for price data.
+        
+        Returns:
+            List of prices in chronological order or None if insufficient data.
+        """
+        # Query for price data, ordered by timestamp (ascending)
+        # Need at least sma_200_period samples
+        query = session.query(PriceData.price).filter(
+            PriceData.timestamp <= timestamp
+        ).order_by(PriceData.timestamp.asc()).limit(self.sma_200_period)
+        
+        results = query.all()
+        
+        # Extract prices from query results
+        prices = [row[0] for row in results]
+        
+        # Check if we have enough data for at least SMA 50
+        if len(prices) < self.sma_50_period:
+            return None
+        
+        return prices
+    
+    def _save_indicator(
+        self,
+        session: Session,
+        timestamp: datetime,
+        sma_50: Optional[float],
+        sma_200: Optional[float]
+    ) -> None:
+        """
+        Save SMA values to TechnicalIndicators table.
+        
+        Args:
+            session: SQLAlchemy database session.
+            timestamp: The timestamp for the indicator.
+            sma_50: SMA 50 value to save (can be None).
+            sma_200: SMA 200 value to save (can be None).
+        """
+        # Check if indicator record exists
+        indicator = session.query(TechnicalIndicators).filter(
+            TechnicalIndicators.timestamp == timestamp
+        ).first()
+        
+        if indicator is None:
+            # Create new indicator record
+            indicator = TechnicalIndicators(
+                timestamp=timestamp,
+                sma_50=sma_50,
+                sma_200=sma_200,
+                price_timestamp=timestamp
+            )
+            session.add(indicator)
+        else:
+            # Update existing record
+            indicator.sma_50 = sma_50
+            indicator.sma_200 = sma_200
+        
+        session.commit()
