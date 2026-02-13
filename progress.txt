@@ -15,3 +15,15 @@ Started: 2026-02-13 10:17 UTC
 - All async/time-based operations should use timezone-aware datetime objects (prefer `datetime.now(timezone.utc)` over `datetime.utcnow()`)
 
 ---
+## 2026-02-13 10:30 - US-015: Implement CLI interface
+- Fixed CLI type annotations to pass mypy strict type checking
+- Added proper type hints to all CLI functions including signal handler
+- Fixed price data handling: fetch_and_save_current_price returns float
+- Added timestamp parameter to indicator calculate_and_save() calls
+- Fixed TwitterSentimentCollector to require all OAuth credentials
+- Fixed mypy.ini configuration for src-layout packages
+- Fixed test_cli.py mock to return float instead of PriceData object
+- All 425 tests pass, mypy strict type checking passes
+- Files changed: src/btc_monitor/cli.py, mypy.ini, tests/test_cli.py, tests/test_main.py
+- **Learnings:** The CLI interface was already implemented but had type errors. The main issues were: 1) fetch_and_save_current_price returns float, not an object; 2) calculate_and_save requires timestamp argument; 3) TwitterSentimentCollector needs all OAuth credentials; 4) MyPy needs explicit_package_bases for src-layout with editable installs to avoid duplicate module detection errors.
+---
