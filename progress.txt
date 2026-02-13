@@ -1,0 +1,29 @@
+# Progress Log
+Run: f11d4b1d-081e-4e55-b347-343c2f3d344f
+Task: Create a Python script that monitors BTC/USD price, technical analysis indicators (RSI, MACD, moving averages), market sentiment from social media/news, and online research to determine overall trend with confidence score
+Started: 2026-02-13 10:17 UTC
+
+## Codebase Patterns
+- The project uses a src-layout package structure with `src/btc_monitor/`
+- Database models use SQLAlchemy 2.0 with `Mapped` type annotations
+- Tests use pytest with `tmp_path` fixture for temporary databases
+- Configuration uses Pydantic with BaseSettings for YAML + env var loading
+- CLI interface uses argparse with subcommands for different operations
+- Sentiment collectors have a common base class `SentimentCollector` with `collect()` and `collect_and_save()` methods
+- Technical indicators (RSI, MACD, MovingAverages) all have `calculate_and_save(session, timestamp)` method signature
+- MyPy type checking requires `explicit_package_bases = True` for src-layout packages with editable installs
+- All async/time-based operations should use timezone-aware datetime objects (prefer `datetime.now(timezone.utc)` over `datetime.utcnow()`)
+
+---
+## 2026-02-13 10:30 - US-015: Implement CLI interface
+- Fixed CLI type annotations to pass mypy strict type checking
+- Added proper type hints to all CLI functions including signal handler
+- Fixed price data handling: fetch_and_save_current_price returns float
+- Added timestamp parameter to indicator calculate_and_save() calls
+- Fixed TwitterSentimentCollector to require all OAuth credentials
+- Fixed mypy.ini configuration for src-layout packages
+- Fixed test_cli.py mock to return float instead of PriceData object
+- All 425 tests pass, mypy strict type checking passes
+- Files changed: src/btc_monitor/cli.py, mypy.ini, tests/test_cli.py, tests/test_main.py
+- **Learnings:** The CLI interface was already implemented but had type errors. The main issues were: 1) fetch_and_save_current_price returns float, not an object; 2) calculate_and_save requires timestamp argument; 3) TwitterSentimentCollector needs all OAuth credentials; 4) MyPy needs explicit_package_bases for src-layout with editable installs to avoid duplicate module detection errors.
+---

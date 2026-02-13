@@ -1,0 +1,49 @@
+# BTC Monitor Configuration Example
+# Copy this file to config.yaml and update with your values
+
+# Twitter/X API
+# Get your API keys from https://developer.twitter.com/
+twitter:
+  consumer_key: "your_consumer_key_here"
+  consumer_secret: "your_consumer_secret_here"
+  access_token: "your_access_token_here"
+  access_token_secret: "your_access_token_secret_here"
+  bearer_token: "your_bearer_token_here"
+
+# News API
+# Get your API key from https://newsapi.org/
+news:
+  api_key: "your_newsapi_key_here"  # Leave empty to use web scraping fallback
+  max_articles: 50
+  hours_back: 24
+
+# Research
+research:
+  max_items: 30
+  hours_back: 48
+
+# Database
+database:
+  url: "sqlite:///btc_monitor.db"
+
+# Data sources
+data_sources:
+  update_interval: 300  # seconds (5 minutes)
+  symbols:
+    - "BTC-USD"
+
+# Analysis
+analysis:
+  rsi_period: 14
+  macd_fast: 12
+  macd_slow: 26
+  macd_signal: 9
+  moving_averages:
+    - 20
+    - 50
+    - 200
+
+# Logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  file: "btc_monitor.log"
