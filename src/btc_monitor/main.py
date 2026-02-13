@@ -257,10 +257,10 @@ def main(
                 api_key=config.coinmarketcap.api_key,
                 db_path=db_path,
             )
-            logging.info("Using CoinMarketCap API for price fetching")
+            logging.info("Using CoinMarketCap API (primary) for price fetching")
         else:
             price_fetcher = PriceFetcher(db_path=db_path)
-            logging.info("Using yfinance for price fetching")
+            logging.info("Using CoinMarketCap API not configured, using yfinance as fallback source")
         
         trend_analyzer = TrendAnalyzer(
             sentiment_window_hours=24,
