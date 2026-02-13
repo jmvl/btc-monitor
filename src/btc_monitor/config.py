@@ -10,7 +10,7 @@ from typing import Optional, Union
 from pathlib import Path
 import os
 
-from pydantic import BaseModel, Field, field_validator, ValidationError
+from pydantic import BaseModel, Field, ValidationInfo, field_validator, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -75,7 +75,7 @@ class AnalysisConfig(BaseModel):
 
     @field_validator("macd_slow")
     @classmethod
-    def validate_macd_slow(cls, v: int, info) -> int:
+    def validate_macd_slow(cls, v: int, info: ValidationInfo) -> int:
         """Ensure slow period is greater than fast period."""
         if "macd_fast" in info.data and v <= info.data["macd_fast"]:
             raise ValueError("MACD slow period must be greater than fast period")
