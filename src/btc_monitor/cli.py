@@ -49,7 +49,7 @@ def setup_logging(verbose: bool, config: Optional["Config"] = None) -> None:
     )
 
 
-def format_output(data: dict, as_json: bool = False) -> str:
+def format_output(data: dict[str, Any], as_json: bool = False) -> str:
     """
     Format output data as text or JSON.
 
