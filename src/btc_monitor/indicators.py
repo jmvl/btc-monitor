@@ -6,6 +6,7 @@ from typing import List, Optional, Union
 
 from sqlalchemy.orm import Session
 
+from btc_monitor.logging import log_indicator_calculation, log_database_operation
 from btc_monitor.models import PriceData, TechnicalIndicators
 
 
@@ -86,30 +87,56 @@ class RSI:
     ) -> Optional[float]:
         """
         Calculate RSI for a given timestamp and save to database.
-        
+
         Args:
             session: SQLAlchemy database session.
             timestamp: The timestamp for which to calculate RSI.
-        
+
         Returns:
             RSI value or None if calculation failed.
         """
-        # Fetch price data needed for RSI calculation
-        prices = self._fetch_prices(session, timestamp)
-        
-        if prices is None:
+        try:
+            # Fetch price data needed for RSI calculation
+            prices = self._fetch_prices(session, timestamp)
+
+            if prices is None:
+                log_indicator_calculation(
+                    "RSI",
+                    {"period": self.period, "timestamp": timestamp},
+                    None,
+                )
+                return None
+
+            # Calculate RSI
+            rsi = self.calculate(prices)
+
+            if rsi is None:
+                log_indicator_calculation(
+                    "RSI",
+                    {"period": self.period, "timestamp": timestamp},
+                    None,
+                )
+                return None
+
+            # Save to database
+            self._save_indicator(session, timestamp, rsi)
+
+            log_indicator_calculation(
+                "RSI",
+                {"period": self.period, "timestamp": timestamp},
+                rsi,
+            )
+
+            return rsi
+
+        except Exception as e:
+            log_indicator_calculation(
+                "RSI",
+                {"period": self.period, "timestamp": timestamp},
+                None,
+                error=e,
+            )
             return None
-        
-        # Calculate RSI
-        rsi = self.calculate(prices)
-        
-        if rsi is None:
-            return None
-        
-        # Save to database
-        self._save_indicator(session, timestamp, rsi)
-        
-        return rsi
     
     def _fetch_prices(
         self,
@@ -150,30 +177,39 @@ class RSI:
     ) -> None:
         """
         Save RSI value to TechnicalIndicators table.
-        
+
         Args:
             session: SQLAlchemy database session.
             timestamp: The timestamp for the indicator.
             rsi: RSI value to save.
         """
-        # Check if indicator record exists
-        indicator = session.query(TechnicalIndicators).filter(
-            TechnicalIndicators.timestamp == timestamp
-        ).first()
-        
-        if indicator is None:
-            # Create new indicator record
-            indicator = TechnicalIndicators(
-                timestamp=timestamp,
-                rsi=rsi,
-                price_timestamp=timestamp
-            )
-            session.add(indicator)
-        else:
-            # Update existing record
-            indicator.rsi = rsi
-        
-        session.commit()
+        try:
+            # Check if indicator record exists
+            indicator = session.query(TechnicalIndicators).filter(
+                TechnicalIndicators.timestamp == timestamp
+            ).first()
+
+            operation = "UPDATE" if indicator else "INSERT"
+
+            if indicator is None:
+                # Create new indicator record
+                indicator = TechnicalIndicators(
+                    timestamp=timestamp,
+                    rsi=rsi,
+                    price_timestamp=timestamp
+                )
+                session.add(indicator)
+            else:
+                # Update existing record
+                indicator.rsi = rsi
+
+            session.commit()
+            log_database_operation(operation, "technical_indicators")
+
+        except Exception as e:
+            session.rollback()
+            log_database_operation("INSERT" if indicator is None else "UPDATE", "technical_indicators", error=e)
+            raise
 
 
 class MACD:
@@ -284,32 +320,58 @@ class MACD:
     ) -> Optional[tuple]:
         """
         Calculate MACD for a given timestamp and save to database.
-        
+
         Args:
             session: SQLAlchemy database session.
             timestamp: The timestamp for which to calculate MACD.
-        
+
         Returns:
             Tuple of (macd_line, signal_line, histogram) or None if calculation failed.
         """
-        # Fetch price data needed for MACD calculation
-        prices = self._fetch_prices(session, timestamp)
-        
-        if prices is None:
+        try:
+            # Fetch price data needed for MACD calculation
+            prices = self._fetch_prices(session, timestamp)
+
+            if prices is None:
+                log_indicator_calculation(
+                    "MACD",
+                    {"fast": self.fast, "slow": self.slow, "signal": self.signal, "timestamp": timestamp},
+                    None,
+                )
+                return None
+
+            # Calculate MACD
+            result = self.calculate(prices)
+
+            if result is None:
+                log_indicator_calculation(
+                    "MACD",
+                    {"fast": self.fast, "slow": self.slow, "signal": self.signal, "timestamp": timestamp},
+                    None,
+                )
+                return None
+
+            macd_line, signal_line, histogram = result
+
+            # Save to database
+            self._save_indicator(session, timestamp, macd_line, signal_line, histogram)
+
+            log_indicator_calculation(
+                "MACD",
+                {"fast": self.fast, "slow": self.slow, "signal": self.signal, "timestamp": timestamp},
+                {"macd": macd_line, "signal": signal_line, "histogram": histogram},
+            )
+
+            return result
+
+        except Exception as e:
+            log_indicator_calculation(
+                "MACD",
+                {"fast": self.fast, "slow": self.slow, "signal": self.signal, "timestamp": timestamp},
+                None,
+                error=e,
+            )
             return None
-        
-        # Calculate MACD
-        result = self.calculate(prices)
-        
-        if result is None:
-            return None
-        
-        macd_line, signal_line, histogram = result
-        
-        # Save to database
-        self._save_indicator(session, timestamp, macd_line, signal_line, histogram)
-        
-        return result
     
     def _fetch_prices(
         self,
@@ -353,7 +415,7 @@ class MACD:
     ) -> None:
         """
         Save MACD values to TechnicalIndicators table.
-        
+
         Args:
             session: SQLAlchemy database session.
             timestamp: The timestamp for the indicator.
@@ -361,28 +423,37 @@ class MACD:
             signal_line: Signal line value to save.
             histogram: Histogram value to save.
         """
-        # Check if indicator record exists
-        indicator = session.query(TechnicalIndicators).filter(
-            TechnicalIndicators.timestamp == timestamp
-        ).first()
-        
-        if indicator is None:
-            # Create new indicator record
-            indicator = TechnicalIndicators(
-                timestamp=timestamp,
-                macd=macd_line,
-                macd_signal=signal_line,
-                macd_hist=histogram,
-                price_timestamp=timestamp
-            )
-            session.add(indicator)
-        else:
-            # Update existing record
-            indicator.macd = macd_line
-            indicator.macd_signal = signal_line
-            indicator.macd_hist = histogram
-        
-        session.commit()
+        try:
+            # Check if indicator record exists
+            indicator = session.query(TechnicalIndicators).filter(
+                TechnicalIndicators.timestamp == timestamp
+            ).first()
+
+            operation = "UPDATE" if indicator else "INSERT"
+
+            if indicator is None:
+                # Create new indicator record
+                indicator = TechnicalIndicators(
+                    timestamp=timestamp,
+                    macd=macd_line,
+                    macd_signal=signal_line,
+                    macd_hist=histogram,
+                    price_timestamp=timestamp
+                )
+                session.add(indicator)
+            else:
+                # Update existing record
+                indicator.macd = macd_line
+                indicator.macd_signal = signal_line
+                indicator.macd_hist = histogram
+
+            session.commit()
+            log_database_operation(operation, "technical_indicators")
+
+        except Exception as e:
+            session.rollback()
+            log_database_operation("INSERT" if indicator is None else "UPDATE", "technical_indicators", error=e)
+            raise
 
 
 class MovingAverages:
@@ -476,35 +547,61 @@ class MovingAverages:
     ) -> Optional[tuple]:
         """
         Calculate SMA 50 and SMA 200 for a given timestamp and save to database.
-        
+
         Args:
             session: SQLAlchemy database session.
             timestamp: The timestamp for which to calculate moving averages.
-        
+
         Returns:
             Tuple of (sma_50, sma_200) or None if calculation failed.
         """
-        # Fetch price data needed for SMA 200 calculation
-        # Need at least 200 samples for SMA 200
-        prices = self._fetch_prices(session, timestamp)
-        
-        if prices is None:
+        try:
+            # Fetch price data needed for SMA 200 calculation
+            # Need at least 200 samples for SMA 200
+            prices = self._fetch_prices(session, timestamp)
+
+            if prices is None:
+                log_indicator_calculation(
+                    "MovingAverages",
+                    {"sma_50": self.sma_50_period, "sma_200": self.sma_200_period, "timestamp": timestamp},
+                    None,
+                )
+                return None
+
+            # Calculate SMA 50
+            sma_50 = self.calculate_sma(prices, self.sma_50_period)
+
+            # Calculate SMA 200
+            sma_200 = self.calculate_sma(prices, self.sma_200_period)
+
+            # If we can calculate at least SMA 50, save it
+            if sma_50 is None:
+                log_indicator_calculation(
+                    "MovingAverages",
+                    {"sma_50": self.sma_50_period, "sma_200": self.sma_200_period, "timestamp": timestamp},
+                    None,
+                )
+                return None
+
+            # Save to database
+            self._save_indicator(session, timestamp, sma_50, sma_200)
+
+            log_indicator_calculation(
+                "MovingAverages",
+                {"sma_50": self.sma_50_period, "sma_200": self.sma_200_period, "timestamp": timestamp},
+                {"sma_50": sma_50, "sma_200": sma_200},
+            )
+
+            return (sma_50, sma_200)
+
+        except Exception as e:
+            log_indicator_calculation(
+                "MovingAverages",
+                {"sma_50": self.sma_50_period, "sma_200": self.sma_200_period, "timestamp": timestamp},
+                None,
+                error=e,
+            )
             return None
-        
-        # Calculate SMA 50
-        sma_50 = self.calculate_sma(prices, self.sma_50_period)
-        
-        # Calculate SMA 200
-        sma_200 = self.calculate_sma(prices, self.sma_200_period)
-        
-        # If we can calculate at least SMA 50, save it
-        if sma_50 is None:
-            return None
-        
-        # Save to database
-        self._save_indicator(session, timestamp, sma_50, sma_200)
-        
-        return (sma_50, sma_200)
     
     def _fetch_prices(
         self,
@@ -547,30 +644,39 @@ class MovingAverages:
     ) -> None:
         """
         Save SMA values to TechnicalIndicators table.
-        
+
         Args:
             session: SQLAlchemy database session.
             timestamp: The timestamp for the indicator.
             sma_50: SMA 50 value to save (can be None).
             sma_200: SMA 200 value to save (can be None).
         """
-        # Check if indicator record exists
-        indicator = session.query(TechnicalIndicators).filter(
-            TechnicalIndicators.timestamp == timestamp
-        ).first()
-        
-        if indicator is None:
-            # Create new indicator record
-            indicator = TechnicalIndicators(
-                timestamp=timestamp,
-                sma_50=sma_50,
-                sma_200=sma_200,
-                price_timestamp=timestamp
-            )
-            session.add(indicator)
-        else:
-            # Update existing record
-            indicator.sma_50 = sma_50
-            indicator.sma_200 = sma_200
-        
-        session.commit()
+        try:
+            # Check if indicator record exists
+            indicator = session.query(TechnicalIndicators).filter(
+                TechnicalIndicators.timestamp == timestamp
+            ).first()
+
+            operation = "UPDATE" if indicator else "INSERT"
+
+            if indicator is None:
+                # Create new indicator record
+                indicator = TechnicalIndicators(
+                    timestamp=timestamp,
+                    sma_50=sma_50,
+                    sma_200=sma_200,
+                    price_timestamp=timestamp
+                )
+                session.add(indicator)
+            else:
+                # Update existing record
+                indicator.sma_50 = sma_50
+                indicator.sma_200 = sma_200
+
+            session.commit()
+            log_database_operation(operation, "technical_indicators")
+
+        except Exception as e:
+            session.rollback()
+            log_database_operation("INSERT" if indicator is None else "UPDATE", "technical_indicators", error=e)
+            raise

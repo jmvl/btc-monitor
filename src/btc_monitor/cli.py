@@ -33,19 +33,21 @@ def setup_logging(verbose: bool, config: Optional["Config"] = None) -> None:
         verbose: Enable debug logging if True
         config: Configuration object (for log file path)
     """
+    from btc_monitor.logging import setup_logging as btc_setup_logging
+
     log_level = "DEBUG" if verbose else "INFO"
     if config:
         log_level = config.logging.level
 
-    log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    date_format = "%Y-%m-%d %H:%M:%S"
+    log_file = config.logging.file if config else "btc_monitor.log"
+    error_log_file = config.logging.error_file if config else "error.log"
 
-    # Configure logging to console
-    logging.basicConfig(
-        level=getattr(logging, log_level.upper()),
-        format=log_format,
-        datefmt=date_format,
-        handlers=[logging.StreamHandler(sys.stdout)],
+    # Set up logging with the new module
+    btc_setup_logging(
+        config=config,
+        log_level=log_level,
+        log_file=log_file,
+        error_log_file=error_log_file,
     )
 
 
@@ -401,12 +403,13 @@ def cmd_analyze(args: argparse.Namespace) -> None:
 
 def cmd_status(args: argparse.Namespace) -> None:
     """
-    Show current trend analysis from database.
+    Show current trend analysis and system health from database.
 
     Args:
         args: Parsed command-line arguments
     """
     from sqlalchemy import desc
+    from datetime import datetime, timedelta, timezone
 
     # Load configuration
     config = load_config(args.config)
@@ -421,8 +424,11 @@ def cmd_status(args: argparse.Namespace) -> None:
     # Create database session
     session = get_session()
 
+    # Initialize components for health check
+    price_fetcher = PriceFetcher(db_path=db_path)
+
     # Fetch latest trend analysis
-    from btc_monitor.models import TrendAnalysis
+    from btc_monitor.models import TrendAnalysis, PriceData, SentimentData, TechnicalIndicators
     latest_analysis = (
         session.query(TrendAnalysis)
         .order_by(desc(TrendAnalysis.timestamp))
@@ -435,12 +441,78 @@ def cmd_status(args: argparse.Namespace) -> None:
         session.close()
         sys.exit(1)
 
+    # Check data freshness
+    now = datetime.now(timezone.utc)
+    one_hour_ago = now - timedelta(hours=1)
+
+    latest_price = (
+        session.query(PriceData)
+        .order_by(desc(PriceData.timestamp))
+        .first()
+    )
+
+    latest_indicators = (
+        session.query(TechnicalIndicators)
+        .order_by(desc(TechnicalIndicators.timestamp))
+        .first()
+    )
+
+    latest_sentiment = (
+        session.query(SentimentData)
+        .order_by(desc(SentimentData.timestamp))
+        .first()
+    )
+
+    # Determine health status
+    health_status = "healthy"
+
+    price_freshness = "unknown"
+    if latest_price:
+        price_age = (now - latest_price.timestamp).total_seconds() / 60
+        price_freshness = f"{price_age:.0f} min old"
+        if latest_price.timestamp < one_hour_ago:
+            health_status = "degraded"
+    else:
+        price_freshness = "no data"
+        health_status = "degraded"
+
+    indicators_freshness = "unknown"
+    if latest_indicators:
+        indicators_age = (now - latest_indicators.timestamp).total_seconds() / 60
+        indicators_freshness = f"{indicators_age:.0f} min old"
+        if latest_indicators.timestamp < one_hour_ago:
+            health_status = "degraded"
+    else:
+        indicators_freshness = "no data"
+        health_status = "degraded"
+
+    sentiment_freshness = "unknown"
+    if latest_sentiment:
+        sentiment_age = (now - latest_sentiment.timestamp).total_seconds() / 60
+        sentiment_freshness = f"{sentiment_age:.0f} min old"
+        if latest_sentiment.timestamp < one_hour_ago:
+            health_status = "degraded"
+    else:
+        sentiment_freshness = "no data"
+
+    # Get circuit breaker status
+    circuit_breaker_status = price_fetcher.get_health().get("circuit_breaker")
+    if circuit_breaker_status and circuit_breaker_status.get("state") == "OPEN":
+        health_status = "degraded"
+
     # Prepare output data
     output = {
         "timestamp": latest_analysis.timestamp.isoformat(),
         "trend": latest_analysis.trend,
         "confidence": latest_analysis.confidence * 100,
         "indicators_summary": latest_analysis.indicators_summary,
+        "health": {
+            "status": health_status,
+            "price_data": price_freshness,
+            "indicators": indicators_freshness,
+            "sentiment": sentiment_freshness,
+            "circuit_breaker": circuit_breaker_status,
+        },
     }
 
     # Format and print output

@@ -86,6 +86,7 @@ class LoggingConfig(BaseModel):
     """Logging configuration."""
     level: str = Field(default="INFO")
     file: str = "btc_monitor.log"
+    error_file: str = "error.log"
 
     @field_validator("level")
     @classmethod
