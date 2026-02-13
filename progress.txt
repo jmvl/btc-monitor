@@ -506,3 +506,32 @@ Started: 2026-02-12T12:12:00Z
 - Package installs successfully with `pip install -e . --break-system-packages`
 - **Learnings:** The main monitor script orchestrates all components in a single workflow. Signal handling with module-level shutdown flag is the standard pattern for graceful shutdown. Logging to both file and console provides flexibility. Component failures should be caught and logged without stopping the entire cycle. Multiple entry points (python -m, ./main.py, console script) provide user convenience. Configurable sleep intervals with short checks allow responsive shutdown. The TwitterSentimentCollector (not TwitterCollector) is the correct class name in the sentiment module. Database sessions should be managed carefully with proper close() on shutdown. Mocking external dependencies in tests allows thorough testing without actual API calls. The --once flag is essential for testing and one-off runs.
 ---
+
+---
+## 2026-02-13T09:45:00Z - US-015: Implement CLI interface
+- Created src/btc_monitor/cli.py with argparse-based CLI interface
+- Implemented 4 commands: monitor (continuous monitoring), analyze (single analysis), status (show current trend), history (show past N analyses)
+- Added global options: --config (custom config file path), --verbose (debug logging), --json (JSON output format)
+- Added command-specific options: monitor --interval, monitor --once, history --count
+- Updated pyproject.toml console script entry point from btc_monitor.main:main to btc_monitor.cli:main
+- Updated src/btc_monitor/__main__.py to use the new CLI main() function
+- Created root cli.py wrapper script for easy execution from project root
+- Created src/btc_monitor/cli.pyi type stub file for mypy compatibility
+- Implemented format_output() function to format results as readable text or JSON
+- All CLI commands support both text and JSON output formats
+- CLI entry points: btc-monitor (console script), python -m btc_monitor, ./cli.py
+- Wrote 28 comprehensive tests in tests/test_cli.py covering:
+  - Logging setup with verbose flag and config override
+  - Output formatting (text and JSON modes)
+  - monitor command with --once and --interval options
+  - analyze command execution
+  - status command with data and no data scenarios
+  - history command with count limit and JSON output
+  - CLI argument parsing and command dispatch
+  - Help text availability for all commands
+- All 28 new tests pass
+- All 397 existing tests continue to pass
+- Type checking verified with manual import test
+- Package installs successfully with `pip install -e . --break-system-packages`
+- **Learnings:** argparse with subcommands is perfect for building multi-command CLIs. Global options should be defined on the main parser, command-specific options on subparsers. Mocking nested attributes in tests requires creating mock objects for each level. Using create_autospec ensures mocks have the same interface as the real objects. Type stub files (.pyi) are essential for mypy compatibility with complex CLI modules. Console script entry points in pyproject.toml provide a clean installation experience. Multiple entry points (python -m, console script, wrapper script) provide user flexibility. Graceful degradation (return empty list on errors) is better than crashing for automated CLI tools.
+---
