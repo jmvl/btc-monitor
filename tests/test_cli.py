@@ -567,7 +567,7 @@ class TestRunMonitoringCycle:
 
         # Create components
         price_fetcher = MagicMock()
-        price_fetcher.fetch_and_save_current_price.return_value = price
+        price_fetcher.fetch_and_save_current_price.return_value = price.price
 
         trend_analyzer = MagicMock()
         trend_analyzer.analyze.return_value = {

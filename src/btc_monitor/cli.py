@@ -7,11 +7,13 @@ Users can run continuous monitoring, perform single analyses, check status, and 
 import argparse
 import json
 import logging
+import signal
 import sys
 from datetime import datetime, timezone
-from typing import Optional
+from types import FrameType
+from typing import Any, Optional
 
-from btc_monitor.config import load_config
+from btc_monitor.config import load_config, Config
 from btc_monitor.database import init_db, get_session
 from btc_monitor.fetchers import PriceFetcher
 from btc_monitor.indicators import RSI, MACD, MovingAverages
@@ -23,7 +25,7 @@ from btc_monitor.sentiment import (
 from btc_monitor.analyzer import TrendAnalyzer
 
 
-def setup_logging(verbose: bool, config=None):
+def setup_logging(verbose: bool, config: Optional["Config"] = None) -> None:
     """
     Set up logging configuration.
 
@@ -74,7 +76,7 @@ def format_output(data: dict, as_json: bool = False) -> str:
     return "\n".join(lines)
 
 
-def cmd_monitor(args: argparse.Namespace):
+def cmd_monitor(args: argparse.Namespace) -> None:
     """
     Run continuous monitoring.
 
@@ -110,13 +112,24 @@ def cmd_monitor(args: argparse.Namespace):
     # Set up signal handlers for graceful shutdown
     shutdown_requested = False
 
-    def signal_handler(signum, frame):
+    def signal_handler(signum: int, frame: Optional[FrameType]) -> None:
         nonlocal shutdown_requested
-        signal_names = {
-            signal.SIGINT: "SIGINT",
-            signal.SIGTERM: "SIGTERM",
-        }
-        signal_name = signal_names.get(signum, f"signal {signum}")
+        # Convert int signal number to Signals enum
+        try:
+            signal_enum = signal.Signals(signum)
+        except ValueError:
+            signal_enum = None
+
+        signal_name: Optional[str]
+        if signal_enum:
+            signal_names = {
+                signal.SIGINT: "SIGINT",
+                signal.SIGTERM: "SIGTERM",
+            }
+            signal_name = signal_names.get(signal_enum, f"signal {signum}")
+        else:
+            signal_name = f"signal {signum}"
+
         logging.info(f"Received {signal_name}, initiating graceful shutdown...")
         shutdown_requested = True
 
@@ -169,8 +182,8 @@ def cmd_monitor(args: argparse.Namespace):
 
 
 def run_monitoring_cycle(
-    config,
-    session,
+    config: Config,
+    session: Any,
     price_fetcher: PriceFetcher,
     trend_analyzer: TrendAnalyzer,
     output_json: bool = False,
@@ -194,17 +207,20 @@ def run_monitoring_cycle(
 
         # Step 1: Fetch current price
         logging.info("Step 1: Fetching current price...")
-        price_data = price_fetcher.fetch_and_save_current_price()
-        if price_data is None:
+        current_price = price_fetcher.fetch_and_save_current_price()
+        if current_price is None:
             logging.error("Failed to fetch price data")
             return False
-        logging.info(f"Current price: ${price_data.price:.2f} (volume: {price_data.volume:,.0f})")
+        logging.info(f"Current price: ${current_price:.2f}")
+
+        # Get timestamp for indicator calculations
+        timestamp = datetime.now(timezone.utc)
 
         # Step 2: Calculate technical indicators
         logging.info("Step 2: Calculating technical indicators...")
         try:
             rsi = RSI(period=config.analysis.rsi_period)
-            rsi.calculate_and_save(session)
+            rsi.calculate_and_save(session, timestamp)
             logging.info(f"RSI calculated with period {config.analysis.rsi_period}")
         except Exception as e:
             logging.error(f"Failed to calculate RSI: {e}")
@@ -215,7 +231,7 @@ def run_monitoring_cycle(
                 slow=config.analysis.macd_slow,
                 signal=config.analysis.macd_signal,
             )
-            macd.calculate_and_save(session)
+            macd.calculate_and_save(session, timestamp)
             logging.info(
                 f"MACD calculated ({config.analysis.macd_fast}/{config.analysis.macd_slow}/{config.analysis.macd_signal})"
             )
@@ -224,7 +240,7 @@ def run_monitoring_cycle(
 
         try:
             ma = MovingAverages()
-            ma.calculate_and_save(session)
+            ma.calculate_and_save(session, timestamp)
             logging.info(f"Moving averages calculated: {config.analysis.moving_averages}")
         except Exception as e:
             logging.error(f"Failed to calculate moving averages: {e}")
@@ -234,12 +250,16 @@ def run_monitoring_cycle(
         sentiment_collected = False
 
         # Twitter sentiment
-        if config.twitter.bearer_token:
+        if (config.twitter.consumer_key and config.twitter.consumer_secret and
+            config.twitter.access_token and config.twitter.access_token_secret):
             try:
                 twitter_collector = TwitterSentimentCollector(
+                    consumer_key=config.twitter.consumer_key,
+                    consumer_secret=config.twitter.consumer_secret,
+                    access_token=config.twitter.access_token,
+                    access_token_secret=config.twitter.access_token_secret,
                     bearer_token=config.twitter.bearer_token,
                     max_tweets=50,
-                    hours_back=24,
                 )
                 twitter_sentiment = twitter_collector.collect()
                 if twitter_sentiment:
@@ -249,7 +269,7 @@ def run_monitoring_cycle(
             except Exception as e:
                 logging.error(f"Failed to collect Twitter sentiment: {e}")
         else:
-            logging.info("Twitter API key not configured, skipping Twitter sentiment")
+            logging.info("Twitter API credentials not fully configured, skipping Twitter sentiment")
 
         # News sentiment
         try:
@@ -333,7 +353,7 @@ def run_monitoring_cycle(
         return False
 
 
-def cmd_analyze(args: argparse.Namespace):
+def cmd_analyze(args: argparse.Namespace) -> None:
     """
     Perform single analysis and print results.
 
@@ -379,7 +399,7 @@ def cmd_analyze(args: argparse.Namespace):
         sys.exit(1)
 
 
-def cmd_status(args: argparse.Namespace):
+def cmd_status(args: argparse.Namespace) -> None:
     """
     Show current trend analysis from database.
 
@@ -430,7 +450,7 @@ def cmd_status(args: argparse.Namespace):
     session.close()
 
 
-def cmd_history(args: argparse.Namespace):
+def cmd_history(args: argparse.Namespace) -> None:
     """
     Show past N analyses from database.
 
@@ -468,11 +488,11 @@ def cmd_history(args: argparse.Namespace):
         sys.exit(1)
 
     # Prepare output data
-    output_data = []
+    output_data: list[dict[str, Any]] = []
     for analysis in analyses:
         output_data.append({
             "timestamp": analysis.timestamp.isoformat(),
-            "trend": analysis.trend,
+            "trend": str(analysis.trend),
             "confidence": analysis.confidence * 100,
             "indicators_summary": analysis.indicators_summary,
         })
@@ -494,7 +514,7 @@ def cmd_history(args: argparse.Namespace):
     session.close()
 
 
-def main():
+def main() -> None:
     """
     Main entry point for CLI.
 

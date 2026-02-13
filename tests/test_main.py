@@ -716,7 +716,7 @@ class TestMainEntryPoints:
 
         # Check that the console script entry point is defined
         assert "btc-monitor" in content
-        assert "btc_monitor.main:main" in content
+        assert "btc_monitor.cli:main" in content
 
 
 class TestEndToEnd:
