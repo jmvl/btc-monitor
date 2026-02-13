@@ -47,6 +47,9 @@ dev = [
 Homepage = "https://github.com/example/btc-monitor"
 Repository = "https://github.com/example/btc-monitor"
 
+[project.scripts]
+btc-monitor = "btc_monitor.main:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 

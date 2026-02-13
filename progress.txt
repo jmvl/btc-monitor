@@ -462,4 +462,47 @@ Started: 2026-02-12T12:12:00Z
 - Type checking verified with manual import test
 - Package installs successfully with pip install -e .
 - **Learnings:** Pydantic-settings BaseSettings is ideal for configuration with env var support. Environment variables use format: BTC_MONITOR_<SECTION>__<FIELD> (e.g., BTC_MONITOR_NEWS__API_KEY). YAML loading with model_validate() respects env vars from BaseSettings but explicit YAML values take precedence. Field validators should use mode="before" for pre-validation transformations. Type stub files (.pyi) are needed for mypy with pydantic models. Config files should have example templates for easy setup.
+
+---
+## 2026-02-13T09:12:00Z - US-013 (retry): Fix mypy type annotation for validate_macd_slow
+- Fixed missing type annotation for `info` parameter in validate_macd_slow method
+- Added ValidationInfo to imports from pydantic
+- Changed `def validate_macd_slow(cls, v: int, info) -> int:` to `def validate_macd_slow(cls, v: int, info: ValidationInfo) -> int:`
+- All 372 tests pass (including 43 config tests)
+- mypy typecheck passes with no errors
+- **Learnings:** Pydantic v2 uses ValidationInfo (not FieldValidationInfo) for field validator info parameter. Type annotations are required for all parameters in validator methods to pass mypy strict type checking. FieldValidationInfo was deprecated in Pydantic V2.0 and is scheduled for removal in V3.0; use ValidationInfo instead.
+---
+
+---
+## 2026-02-13T09:22:00Z - US-014: Implement main monitor script
+- Created main monitor script at src/btc_monitor/main.py
+- Implemented monitoring loop with all components: price fetch, indicators calculation, sentiment collection, trend analysis
+- Created __main__.py module for `python -m btc_monitor` entry point
+- Created root main.py wrapper for easy execution from project root
+- Added console script entry point in pyproject.toml (btc-monitor command)
+- Implemented graceful shutdown handling for SIGINT and SIGTERM signals
+- Added comprehensive logging with timestamps and configurable log levels
+- Implemented monitoring cycle that:
+  1. Fetches current price using PriceFetcher
+  2. Calculates RSI, MACD, and moving averages
+  3. Collects sentiment from Twitter, news, and research sources
+  4. Analyzes trend and calculates confidence using TrendAnalyzer
+  5. Saves results to TrendAnalysis table
+- Handles component failures gracefully (continues if one component fails)
+- Supports --once flag for single-run mode and --config, --log-level, --log-file options
+- Created type stub file (main.pyi) for mypy compatibility
+- Wrote 25 comprehensive tests in tests/test_main.py covering:
+  - Signal handling (SIGINT, SIGTERM)
+  - Logging setup with custom levels and formats
+  - Monitoring cycle: price fetching, indicator calculation, sentiment collection, trend analysis
+  - Error handling: price fetch failure, indicator calculation failure, trend analysis returning None
+  - Main function: config loading, database initialization, monitoring loop, shutdown handling
+  - Command-line argument handling and overrides
+  - Entry points: root main.py, package __main__.py, console script
+  - Module structure and components
+- All 25 new tests pass
+- All 372 existing tests continue to pass (total: 397 tests)
+- Type checking passes with manual typecheck script
+- Package installs successfully with `pip install -e . --break-system-packages`
+- **Learnings:** The main monitor script orchestrates all components in a single workflow. Signal handling with module-level shutdown flag is the standard pattern for graceful shutdown. Logging to both file and console provides flexibility. Component failures should be caught and logged without stopping the entire cycle. Multiple entry points (python -m, ./main.py, console script) provide user convenience. Configurable sleep intervals with short checks allow responsive shutdown. The TwitterSentimentCollector (not TwitterCollector) is the correct class name in the sentiment module. Database sessions should be managed carefully with proper close() on shutdown. Mocking external dependencies in tests allows thorough testing without actual API calls. The --once flag is essential for testing and one-off runs.
 ---
