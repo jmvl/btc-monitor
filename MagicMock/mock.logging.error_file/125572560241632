@@ -1,0 +1,1 @@
+2026-02-13 12:39:09 - root - ERROR - Failed to collect Twitter sentiment: Consumer key must be string or bytes, not MagicMock

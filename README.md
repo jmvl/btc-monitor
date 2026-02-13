@@ -78,7 +78,9 @@ For full functionality, you may need:
 
 - **Twitter API**: API keys from https://developer.twitter.com/
 - **News API**: API key from https://newsapi.org/
-- **yfinance**: Automatic install via pip
+- **CoinMarketCap API**: API key from https://pro.coinmarketcap.com/signup (recommended over yfinance)
+- **yfinance**: Fallback price data source (automatic install via pip)
+- **requests**: For CoinMarketCap API (automatic install via pip)
 
 ## Configuration
 
@@ -109,6 +111,14 @@ news:
 research:
   max_items: 30
   hours_back: 48
+
+# CoinMarketCap API (recommended)
+coinmarketcap:
+  api_key: "your_coinmarketcap_api_key_here"  # Leave empty to use yfinance fallback
+  max_retries: 3
+  initial_backoff: 1.0
+  max_backoff: 60.0
+  use_circuit_breaker: true
 
 # Database
 database:

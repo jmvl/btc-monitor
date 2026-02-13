@@ -20,6 +20,7 @@ from typing import Optional
 from btc_monitor.config import load_config
 from btc_monitor.database import init_db, get_session
 from btc_monitor.fetchers import PriceFetcher
+from btc_monitor.coinmarketcap import CoinMarketCapFetcher
 from btc_monitor.logging import setup_logging
 from btc_monitor.indicators import RSI, MACD, MovingAverages
 from btc_monitor.sentiment import (
@@ -249,7 +250,18 @@ def main(
 
         # Initialize components
         logging.info("Initializing components...")
-        price_fetcher = PriceFetcher(db_path=db_path)
+        
+        # Choose price fetcher based on configuration
+        if config.coinmarketcap.api_key:
+            price_fetcher = CoinMarketCapFetcher(
+                api_key=config.coinmarketcap.api_key,
+                db_path=db_path,
+            )
+            logging.info("Using CoinMarketCap API for price fetching")
+        else:
+            price_fetcher = PriceFetcher(db_path=db_path)
+            logging.info("Using yfinance for price fetching")
+        
         trend_analyzer = TrendAnalyzer(
             sentiment_window_hours=24,
             max_data_age_hours=1,
