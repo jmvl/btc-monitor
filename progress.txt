@@ -26,4 +26,20 @@ Started: 2026-02-13 10:17 UTC
 - All 425 tests pass, mypy strict type checking passes
 - Files changed: src/btc_monitor/cli.py, mypy.ini, tests/test_cli.py, tests/test_main.py
 - **Learnings:** The CLI interface was already implemented but had type errors. The main issues were: 1) fetch_and_save_current_price returns float, not an object; 2) calculate_and_save requires timestamp argument; 3) TwitterSentimentCollector needs all OAuth credentials; 4) MyPy needs explicit_package_bases for src-layout with editable installs to avoid duplicate module detection errors.
+
+---
+## 2026-02-13 12:30 - US-016: Add comprehensive logging and error handling
+- Created src/btc_monitor/logging.py with comprehensive logging utilities
+- Implemented CircuitBreaker pattern for API failure handling with configurable failure threshold and recovery timeout
+- Added separate log files: btc_monitor.log (INFO+) and error.log (ERROR+) with rotating file handlers (10MB, 5 backups)
+- Added logging utilities: log_api_call(), log_indicator_calculation(), log_database_operation()
+- Updated all API calls to log endpoint, method, status, and response time
+- Updated all indicator calculations to log parameters and results
+- Updated all database operations to log operation type and status
+- Added circuit breaker integration to PriceFetcher with health status method
+- Enhanced CLI status command to show health of all components including circuit breaker state
+- Updated config.yaml to add error_file logging configuration
+- Added 25 comprehensive tests covering all logging and circuit breaker functionality
+- Files changed: src/btc_monitor/logging.py (new), src/btc_monitor/config.py, src/btc_monitor/main.py, src/btc_monitor/cli.py, src/btc_monitor/fetchers.py, src/btc_monitor/indicators.py, config/config.yaml, tests/test_logging.py (new)
+- **Learnings:** Python's logging module is powerful but requires careful configuration for multi-file logging. The circuit breaker pattern is essential for preventing cascading failures in external API calls. Separating error logs from main logs makes debugging much easier. Rotating file handlers prevent log files from growing too large.
 ---
