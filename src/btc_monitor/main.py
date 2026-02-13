@@ -96,7 +96,12 @@ def run_monitoring_cycle(
         if price_data is None:
             logging.error("Failed to fetch price data")
             return False
-        logging.info(f"Current price: ${price_data.price:.2f} (volume: {price_data.volume:,.0f})")
+        
+        # Extract OHLCV data if it's a dict (CoinMarketCap returns dict)
+        if isinstance(price_data, dict):
+            logging.info(f"Current price: ${price_data.get('close', 0):.2f} (OHLCV)")
+        else:
+            logging.info(f"Current price: ${price_data:.2f} (volume: {price_data.volume:,.0f})")
 
         # Step 2: Calculate technical indicators
         logging.info("Step 2: Calculating technical indicators...")

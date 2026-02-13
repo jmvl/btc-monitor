@@ -149,32 +149,33 @@ class CoinMarketCapFetcher:
             logger.error(f"Circuit breaker is blocking API calls: {e}")
             return None
 
-    def get_current_price(self) -> Optional[float]:
+    def get_current_price(self) -> Optional[dict]:
         """
-        Get current BTC/USD price.
+        Get current BTC/USD price with OHLCV data.
 
         Returns:
-            Current BTC/USD price as float, or None if fetch fails.
+            Dictionary with OHLCV data (open, high, low, close, volume), or None if fetch fails.
 
         Raises:
             ValueError: If price is out of valid range.
             CircuitBreakerOpenError: If circuit breaker is blocking calls.
         """
         def _fetch():
-            # Use quotes/latest endpoint for current price
+            # Use quotes/latest endpoint for current OHLCV data
             data = self._make_request(
                 "/cryptocurrency/quotes/latest",
                 params={
                     "slug": "bitcoin",
                     "convert": "USD",
+                    "include": "24hr",  # Get 24h OHLCV data
                 },
             )
 
             if data is None:
                 raise Exception("No data returned from CoinMarketCap API")
 
-            # Extract price from response
-            # Response format: {"data": [{"symbol": "BTC", "quote": {"USD": {"price": 95000.00}}]}
+            # Extract OHLCV data from response
+            # Response format: {"data": [{"symbol": "BTC", "quote": {"USD": {"price": ..., "high_24h": ..., "low_24h": ..., "volume_24h": ...}}]}
             if "data" not in data or not data["data"]:
                 raise Exception("Unexpected response format from CoinMarketCap API")
 
@@ -186,13 +187,33 @@ class CoinMarketCapFetcher:
             if "USD" not in quote:
                 raise Exception("No USD price in quote")
 
-            price = float(quote["USD"]["price"])
+            # Extract OHLCV fields
+            price = float(quote["USD"].get("price", 0))
+            high = float(quote["USD"].get("high_24h", price))
+            low = float(quote["USD"].get("low_24h", price))
+            volume = float(quote["USD"].get("volume_24h", 0))
 
             # Validate price is in reasonable range
             if not (0 < price < 1_000_000):
                 raise ValueError(f"Price {price} is out of valid range (0, 1,000,000)")
 
-            return price
+            # Log successful API call
+            response_time_ms = (time.time() - start_time) * 1000
+            log_api_call(
+                endpoint="BTC-USD (CoinMarketCap)",
+                method="GET",
+                status_code=200,
+                response_time_ms=response_time_ms,
+            )
+
+            # Return OHLCV data as dict
+            return {
+                "open": price,
+                "high": high,
+                "low": low,
+                "close": price,  # Use price as close
+                "volume": volume,
+            }
 
         try:
             price = self._retry_with_backoff(_fetch)
@@ -273,12 +294,12 @@ class CoinMarketCapFetcher:
             logger.error(f"Circuit breaker is blocking API calls: {e}")
             return []
 
-    def save_to_database(self, price_data: PriceData) -> bool:
+    def save_to_database(self, price_data: dict) -> bool:
         """
-        Save a single price data record to the database.
+        Save a single price data record with OHLCV data to database.
 
         Args:
-            price_data: PriceData object to save.
+            price_data: Dictionary with OHLCV data (open, high, low, close, volume).
 
         Returns:
             True if save was successful, False otherwise.
@@ -290,22 +311,33 @@ class CoinMarketCapFetcher:
             try:
                 # Check if record already exists (upsert logic)
                 existing = session.query(PriceData).filter(
-                    PriceData.timestamp == price_data.timestamp
+                    PriceData.timestamp == price_data["timestamp"]
                 ).first()
 
                 operation = "UPDATE" if existing else "INSERT"
 
                 if existing:
-                    # Update existing record
-                    existing.price = price_data.price
-                    existing.volume = price_data.volume
+                    # Update existing record with OHLCV data
+                    existing.open_price = price_data.get("open")
+                    existing.high = price_data.get("high")
+                    existing.low = price_data.get("low")
+                    existing.close = price_data.get("close")
+                    existing.volume = price_data.get("volume")
                 else:
-                    # Insert new record
-                    session.add(price_data)
+                    # Insert new record with OHLCV data
+                    record = PriceData(
+                        timestamp=price_data["timestamp"],
+                        open_price=price_data.get("open"),
+                        high=price_data.get("high"),
+                        low=price_data.get("low"),
+                        close=price_data.get("close"),
+                        volume=price_data.get("volume"),
+                    )
+                    session.add(record)
 
                 session.commit()
                 log_database_operation(operation, "price_data")
-                logger.debug(f"Saved price data for {price_data.timestamp}")
+                logger.debug(f"Saved OHLCV price data for {price_data['timestamp']}")
                 return True
             except Exception as e:
                 session.rollback()
@@ -320,24 +352,30 @@ class CoinMarketCapFetcher:
             logger.error(f"Failed to get database session: {e}")
             return False
 
-    def fetch_and_save_current_price(self) -> Optional[float]:
+    def fetch_and_save_current_price(self) -> Optional[dict]:
         """
-        Fetch current price and save it to the database.
-
+        Fetch current price with OHLCV data and save it to database.
+        
         Returns:
-            Current price if successful, None otherwise.
+            Dictionary with OHLCV data (open, high, low, close, volume), or None if successful.
         """
-        price = self.get_current_price()
-        if price is None:
+        price_dict = self.get_current_price()
+        if price_dict is None:
             return None
-
-        # Create PriceData with current timestamp
-        now = datetime.utcnow()
-        price_data = PriceData(timestamp=now, price=price, volume=None)
-
+        
+        # Create PriceData with current timestamp and OHLCV data
+        price_data = {
+            "timestamp": datetime.utcnow(),
+            "open": price_dict.get("open"),
+            "high": price_dict.get("high"),
+            "low": price_dict.get("low"),
+            "close": price_dict.get("close"),
+            "volume": price_dict.get("volume"),
+        }
+        
         if self.save_to_database(price_data):
-            return price
-
+            return price_dict
+        
         return None
 
     def fetch_and_save_historical_data(

@@ -20,14 +20,17 @@ class Base(DeclarativeBase):
 
 
 class PriceData(Base):
-    """Model for storing BTC/USD price data."""
+    """Model for storing BTC/USD price data (OHLCV format)."""
     
     __tablename__ = "price_data"
     
     timestamp: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), primary_key=True
     )
-    price: Mapped[float] = mapped_column(Float, nullable=False)
+    open_price: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    high: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    low: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    close: Mapped[float] = mapped_column(Float, nullable=False)
     volume: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     
     # Relationship to technical indicators
