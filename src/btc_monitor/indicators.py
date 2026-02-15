@@ -154,7 +154,7 @@ class RSI:
             List of prices in chronological order or None if insufficient data.
         """
         # Query for price data, ordered by timestamp (ascending)
-        query = session.query(PriceData.price).filter(
+        query = session.query(PriceData.close).filter(
             PriceData.timestamp <= timestamp
         ).order_by(PriceData.timestamp.asc()).limit(self.period + 1)
         
@@ -390,7 +390,7 @@ class MACD:
         """
         # Query for price data, ordered by timestamp (ascending)
         min_samples = self.slow + self.signal
-        query = session.query(PriceData.price).filter(
+        query = session.query(PriceData.close).filter(
             PriceData.timestamp <= timestamp
         ).order_by(PriceData.timestamp.asc()).limit(min_samples)
         
@@ -620,7 +620,7 @@ class MovingAverages:
         """
         # Query for price data, ordered by timestamp (ascending)
         # Need at least sma_200_period samples
-        query = session.query(PriceData.price).filter(
+        query = session.query(PriceData.close).filter(
             PriceData.timestamp <= timestamp
         ).order_by(PriceData.timestamp.asc()).limit(self.sma_200_period)
         

@@ -414,8 +414,9 @@ def cmd_status(args: argparse.Namespace) -> None:
     # Load configuration
     config = load_config(args.config)
 
-    # Set up logging
-    setup_logging(args.verbose, config)
+    # Set up logging (suppress if JSON output)
+    if not args.json:
+        setup_logging(args.verbose, config)
 
     # Initialize database
     db_path = config.db_path
@@ -534,8 +535,9 @@ def cmd_history(args: argparse.Namespace) -> None:
     # Load configuration
     config = load_config(args.config)
 
-    # Set up logging
-    setup_logging(args.verbose, config)
+    # Set up logging (suppress if JSON output)
+    if not args.json:
+        setup_logging(args.verbose, config)
 
     # Initialize database
     db_path = config.db_path

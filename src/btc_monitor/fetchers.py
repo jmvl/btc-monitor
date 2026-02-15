@@ -225,7 +225,7 @@ class PriceFetcher:
 
                 price_data = PriceData(
                     timestamp=ts,
-                    price=price,
+                    close=price,
                     volume=volume,
                 )
                 price_records.append(price_data)
@@ -235,6 +235,9 @@ class PriceFetcher:
 
         except CircuitBreakerOpenError as e:
             logger.error(f"Circuit breaker is blocking API calls: {e}")
+            return []
+        except Exception as e:
+            logger.error(f"Failed to fetch historical data: {e}")
             return []
     
     def save_to_database(self, price_data: PriceData) -> bool:
@@ -261,7 +264,7 @@ class PriceFetcher:
 
                 if existing:
                     # Update existing record
-                    existing.price = price_data.price
+                    existing.close = price_data.close
                     existing.volume = price_data.volume
                 else:
                     # Insert new record
@@ -297,7 +300,7 @@ class PriceFetcher:
         
         # Create PriceData with current timestamp
         now = datetime.utcnow()
-        price_data = PriceData(timestamp=now, price=price, volume=None)
+        price_data = PriceData(timestamp=now, close=price, volume=None)
         
         if self.save_to_database(price_data):
             return price

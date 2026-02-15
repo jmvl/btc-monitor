@@ -1,0 +1,7 @@
+2026-02-14 21:03:30 - btc_monitor.logging - INFO - ============================================================
+2026-02-14 21:03:30 - btc_monitor.logging - INFO - BTC Monitor logging initialized
+2026-02-14 21:03:30 - btc_monitor.logging - INFO - Log level: INFO
+2026-02-14 21:03:30 - btc_monitor.logging - INFO - Main log file: <MagicMock name='mock.logging.file' id='135829556450448'>
+2026-02-14 21:03:30 - btc_monitor.logging - INFO - Error log file: <MagicMock name='mock.logging.error_file' id='135829556454144'>
+2026-02-14 21:03:30 - btc_monitor.logging - INFO - ============================================================
+2026-02-14 21:03:30 - root - INFO - No trend analysis found. Run 'btc-monitor analyze' first.

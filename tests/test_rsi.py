@@ -214,7 +214,7 @@ class TestRSIDatabaseIntegration:
             price_time = base_time + timedelta(hours=i)
             price_data = PriceData(
                 timestamp=price_time,
-                price=100.0 + i * 0.5
+                close=100.0 + i * 0.5
             )
             db_session.add(price_data)
         db_session.commit()
@@ -235,7 +235,7 @@ class TestRSIDatabaseIntegration:
         for i in range(10):
             price_data = PriceData(
                 timestamp=base_time + timedelta(hours=i),
-                price=100.0 + i
+                close=100.0 + i
             )
             db_session.add(price_data)
         db_session.commit()
@@ -295,7 +295,7 @@ class TestRSIDatabaseIntegration:
         for i in range(20):
             price_data = PriceData(
                 timestamp=base_time + timedelta(hours=i),
-                price=100.0 + math.sin(i) * 10  # Oscillating prices
+                close=100.0 + math.sin(i) * 10  # Oscillating prices
             )
             db_session.add(price_data)
         db_session.commit()
@@ -325,7 +325,7 @@ class TestRSIDatabaseIntegration:
         for i in range(10):
             price_data = PriceData(
                 timestamp=base_time + timedelta(hours=i),
-                price=100.0 + i
+                close=100.0 + i
             )
             db_session.add(price_data)
         db_session.commit()

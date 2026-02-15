@@ -228,7 +228,7 @@ class TrendAnalyzer:
         # Need at least 24 hours of data (assuming hourly data)
         cutoff_time = timestamp - timedelta(hours=24)
         
-        prices = session.query(PriceData.price).filter(
+        prices = session.query(PriceData.close).filter(
             PriceData.timestamp >= cutoff_time,
             PriceData.timestamp <= timestamp
         ).order_by(PriceData.timestamp).all()
@@ -371,7 +371,7 @@ class TrendAnalyzer:
         # Calculate individual signals
         rsi_signal = self._calculate_rsi_signal(tech_indicators.rsi)
         macd_signal = self._calculate_macd_signal(tech_indicators.macd, tech_indicators.macd_signal)
-        ma_signal = self._calculate_ma_signal(price_data.price, tech_indicators.sma_200)
+        ma_signal = self._calculate_ma_signal(price_data.close, tech_indicators.sma_200)
         sentiment_signal = self._calculate_sentiment_signal(sentiment_data)
         
         # Combine signals into overall trend

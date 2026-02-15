@@ -5,7 +5,7 @@ import sys
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Union
 
 from btc_monitor.config import Config
 
@@ -153,7 +153,7 @@ def log_api_call(
 def log_indicator_calculation(
     indicator_name: str,
     parameters: dict,
-    result: Optional[float] | dict[str, Any],
+    result: Union[Optional[float], dict[str, Any]],
     error: Optional[Exception] = None,
 ) -> None:
     """

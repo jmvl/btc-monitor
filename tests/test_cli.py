@@ -537,7 +537,7 @@ class TestRunMonitoringCycle:
         # Add price data
         price = PriceData(
             timestamp=datetime.now(timezone.utc),
-            price=50000.0,
+            close=50000.0,
             volume=1000000.0,
         )
         session.add(price)
@@ -567,7 +567,7 @@ class TestRunMonitoringCycle:
 
         # Create components
         price_fetcher = MagicMock()
-        price_fetcher.fetch_and_save_current_price.return_value = price.price
+        price_fetcher.fetch_and_save_current_price.return_value = price.close
 
         trend_analyzer = MagicMock()
         trend_analyzer.analyze.return_value = {

@@ -100,8 +100,10 @@ def run_monitoring_cycle(
         # Extract OHLCV data if it's a dict (CoinMarketCap returns dict)
         if isinstance(price_data, dict):
             logging.info(f"Current price: ${price_data.get('close', 0):.2f} (OHLCV)")
+        elif hasattr(price_data, 'close'):
+            logging.info(f"Current price: ${price_data.close:.2f} (volume: {price_data.volume:,.0f})")
         else:
-            logging.info(f"Current price: ${price_data:.2f} (volume: {price_data.volume:,.0f})")
+            logging.info(f"Current price: ${price_data:.2f}")
 
         # Step 2: Calculate technical indicators
         logging.info("Step 2: Calculating technical indicators...")

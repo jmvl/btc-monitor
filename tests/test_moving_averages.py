@@ -209,7 +209,7 @@ class TestDatabaseIntegration:
         for i in range(60):
             timestamp = base_time - timedelta(days=60 - i)
             price = 100.0 + i  # Increasing prices
-            price_data = PriceData(timestamp=timestamp, price=price, volume=1000.0)
+            price_data = PriceData(timestamp=timestamp, close=price, volume=1000.0)
             db_session.add(price_data)
         db_session.commit()
         
@@ -228,7 +228,7 @@ class TestDatabaseIntegration:
         for i in range(30):
             timestamp = base_time - timedelta(days=30 - i)
             price = 100.0 + i
-            price_data = PriceData(timestamp=timestamp, price=price, volume=1000.0)
+            price_data = PriceData(timestamp=timestamp, close=price, volume=1000.0)
             db_session.add(price_data)
         db_session.commit()
         
@@ -305,7 +305,7 @@ class TestCalculateAndSave:
         for i in range(60):
             timestamp = base_time - timedelta(days=60 - i)
             price = 100.0 + i
-            price_data = PriceData(timestamp=timestamp, price=price, volume=1000.0)
+            price_data = PriceData(timestamp=timestamp, close=price, volume=1000.0)
             db_session.add(price_data)
         db_session.commit()
         
@@ -333,7 +333,7 @@ class TestCalculateAndSave:
         for i in range(250):
             timestamp = base_time - timedelta(days=250 - i)
             price = 100.0 + i
-            price_data = PriceData(timestamp=timestamp, price=price, volume=1000.0)
+            price_data = PriceData(timestamp=timestamp, close=price, volume=1000.0)
             db_session.add(price_data)
         db_session.commit()
         
@@ -365,7 +365,7 @@ class TestCalculateAndSave:
         for i in range(30):
             timestamp = base_time - timedelta(days=30 - i)
             price = 100.0 + i
-            price_data = PriceData(timestamp=timestamp, price=price, volume=1000.0)
+            price_data = PriceData(timestamp=timestamp, close=price, volume=1000.0)
             db_session.add(price_data)
         db_session.commit()
         
@@ -381,7 +381,7 @@ class TestCalculateAndSave:
         for i in range(250):
             timestamp = base_time - timedelta(days=250 - i)
             price = 100.0 + i
-            price_data = PriceData(timestamp=timestamp, price=price, volume=1000.0)
+            price_data = PriceData(timestamp=timestamp, close=price, volume=1000.0)
             db_session.add(price_data)
         db_session.commit()
         
@@ -401,7 +401,7 @@ class TestCalculateAndSave:
         for i in range(250):
             timestamp = base_time - timedelta(days=250 - i)
             price = 350.0 - i
-            price_data = PriceData(timestamp=timestamp, price=price, volume=1000.0)
+            price_data = PriceData(timestamp=timestamp, close=price, volume=1000.0)
             db_session.add(price_data)
         db_session.commit()
         
@@ -421,7 +421,7 @@ class TestCalculateAndSave:
         for i in range(250):
             timestamp = base_time - timedelta(days=250 - i)
             price = 100.0
-            price_data = PriceData(timestamp=timestamp, price=price, volume=1000.0)
+            price_data = PriceData(timestamp=timestamp, close=price, volume=1000.0)
             db_session.add(price_data)
         db_session.commit()
         
@@ -442,7 +442,7 @@ class TestCalculateAndSave:
         for i in range(250):
             timestamp = base_time - timedelta(days=250 - i)
             price = 100.0 + i
-            price_data = PriceData(timestamp=timestamp, price=price, volume=1000.0)
+            price_data = PriceData(timestamp=timestamp, close=price, volume=1000.0)
             db_session.add(price_data)
         db_session.commit()
         

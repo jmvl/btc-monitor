@@ -1,0 +1,6 @@
+2026-02-14 13:06:11 - btc_monitor.logging - INFO - ============================================================
+2026-02-14 13:06:11 - btc_monitor.logging - INFO - BTC Monitor logging initialized
+2026-02-14 13:06:11 - btc_monitor.logging - INFO - Log level: INFO
+2026-02-14 13:06:11 - btc_monitor.logging - INFO - Main log file: <MagicMock name='mock.logging.file' id='134709034835824'>
+2026-02-14 13:06:11 - btc_monitor.logging - INFO - Error log file: <MagicMock name='mock.logging.error_file' id='134709034839520'>
+2026-02-14 13:06:11 - btc_monitor.logging - INFO - ============================================================

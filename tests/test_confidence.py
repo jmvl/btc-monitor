@@ -194,7 +194,7 @@ def test_calculate_volatility_factor_low_volatility(temp_db_path, timestamp):
     for i in range(20):
         price = PriceData(
             timestamp=timestamp - timedelta(hours=20-i),
-            price=base_price + (i * 10),  # Small gradual increase
+            close=base_price + (i * 10),  # Small gradual increase
             volume=1000.0
         )
         session.add(price)
@@ -220,7 +220,7 @@ def test_calculate_volatility_factor_normal_volatility(temp_db_path, timestamp):
         price_change = random.uniform(-500, 500)
         price = PriceData(
             timestamp=timestamp - timedelta(hours=20-i),
-            price=base_price + price_change,
+            close=base_price + price_change,
             volume=1000.0
         )
         session.add(price)
@@ -244,7 +244,7 @@ def test_calculate_volatility_factor_high_volatility(temp_db_path, timestamp):
         price_change = 2000 if i % 2 == 0 else -2000
         price = PriceData(
             timestamp=timestamp - timedelta(hours=20-i),
-            price=base_price + price_change,
+            close=base_price + price_change,
             volume=1000.0
         )
         session.add(price)
@@ -265,7 +265,7 @@ def test_calculate_volatility_factor_insufficient_data(temp_db_path, timestamp):
     for i in range(5):
         price = PriceData(
             timestamp=timestamp - timedelta(hours=5-i),
-            price=45000.0 + i * 100,
+            close=45000.0 + i * 100,
             volume=1000.0
         )
         session.add(price)
@@ -424,7 +424,7 @@ def test_calculate_confidence_all_bullish_fresh_data_low_volatility(
     for i in range(20):
         price = PriceData(
             timestamp=timestamp - timedelta(hours=20-i),
-            price=45000.0 + i * 10,
+            close=45000.0 + i * 10,
             volume=1000.0
         )
         session.add(price)
@@ -484,7 +484,7 @@ def test_calculate_confidence_mixed_signals(temp_db_path, timestamp):
     for i in range(20):
         price = PriceData(
             timestamp=timestamp - timedelta(hours=20-i),
-            price=45000.0 + i * 10,
+            close=45000.0 + i * 10,
             volume=1000.0
         )
         session.add(price)
@@ -538,7 +538,7 @@ def test_calculate_confidence_stale_data(temp_db_path, timestamp):
     for i in range(20):
         price = PriceData(
             timestamp=timestamp - timedelta(hours=20-i),
-            price=45000.0 + i * 10,
+            close=45000.0 + i * 10,
             volume=1000.0
         )
         session.add(price)
@@ -593,7 +593,7 @@ def test_calculate_confidence_high_volatility(temp_db_path, timestamp):
         price_change = 2000 if i % 2 == 0 else -2000
         price = PriceData(
             timestamp=timestamp - timedelta(hours=20-i),
-            price=45000.0 + price_change,
+            close=45000.0 + price_change,
             volume=1000.0
         )
         session.add(price)
@@ -647,7 +647,7 @@ def test_calculate_confidence_low_sentiment_volume(temp_db_path, timestamp):
     for i in range(20):
         price = PriceData(
             timestamp=timestamp - timedelta(hours=20-i),
-            price=45000.0 + i * 10,
+            close=45000.0 + i * 10,
             volume=1000.0
         )
         session.add(price)
@@ -701,7 +701,7 @@ def test_calculate_confidence_no_sentiment(temp_db_path, timestamp):
     for i in range(20):
         price = PriceData(
             timestamp=timestamp - timedelta(hours=20-i),
-            price=45000.0 + i * 10,
+            close=45000.0 + i * 10,
             volume=1000.0
         )
         session.add(price)
@@ -744,7 +744,7 @@ def test_calculate_confidence_range(temp_db_path, timestamp):
         price_change = 5000 if i % 2 == 0 else -5000
         price = PriceData(
             timestamp=timestamp - timedelta(hours=20-i),
-            price=45000.0 + price_change,
+            close=45000.0 + price_change,
             volume=1000.0
         )
         session.add(price)
@@ -798,7 +798,7 @@ def test_analyze_with_confidence(temp_db_path, timestamp):
     # Create test data
     price = PriceData(
         timestamp=timestamp - timedelta(hours=1),
-        price=46000.0,
+        close=46000.0,
         volume=1000.0
     )
     tech = TechnicalIndicators(
@@ -839,7 +839,7 @@ def test_confidence_saved_to_database(temp_db_path, timestamp):
     # Create test data
     price = PriceData(
         timestamp=timestamp - timedelta(hours=1),
-        price=46000.0,
+        close=46000.0,
         volume=1000.0
     )
     tech = TechnicalIndicators(
