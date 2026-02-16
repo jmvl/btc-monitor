@@ -1,204 +1,139 @@
 #!/usr/bin/env python3
 """
-Run backtest for BTC/USD with simple RSI strategy.
+Run backtest for BTC/USD with RSI strategy.
+Matches TradingView's Strategy Tester behavior.
 """
 
 import sys
-import os
-from datetime import datetime, timedelta
 from pathlib import Path
-
-# Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from btc_monitor.backtest import Backtester, RSIStrategy, generate_pinescript_for_strategy
-from btc_monitor.config import load_config
-from btc_monitor.database import init_db, get_session
-from btc_monitor.indicators import RSI
-from btc_monitor.models import PriceData
-from sqlalchemy import desc
+import pandas as pd
+import yfinance as yf
+from datetime import datetime, timedelta
+
+from btc_monitor.backtest import (
+    BacktestConfig, Backtester, RSIStrategy,
+    print_kpis, print_trades
+)
 import logging
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 
-def fetch_historical_prices(session, days: int = 365):
+def fetch_btc_data(days: int = 365) -> pd.DataFrame:
     """
-    Fetch historical price data from database.
+    Fetch BTC-USD historical data from yfinance.
     
-    Args:
-        session: Database session
-        days: Number of days of history
-        
-    Returns:
-        Tuple of (timestamps, prices)
+    Note: yfinance OHLC may differ slightly from TradingView's INDEX:BTCUSD.
+    For exact match, export CSV from TradingView and use load_tv_export().
     """
-    from datetime import timezone
+    logger.info(f"Fetching {days} days of BTC-USD data from yfinance...")
     
-    end_date = datetime.now(timezone.utc)
+    ticker = yf.Ticker('BTC-USD')
+    end_date = datetime.now()
     start_date = end_date - timedelta(days=days)
     
-    prices = (
-        session.query(PriceData)
-        .filter(PriceData.timestamp >= start_date)
-        .filter(PriceData.timestamp <= end_date)
-        .order_by(PriceData.timestamp)
-        .all()
-    )
+    df = ticker.history(start=start_date, end=end_date, interval='1d')
     
-    if not prices:
-        logger.error("No price data found in database")
-        return [], []
+    # Ensure proper column names (yfinance uses Title case)
+    df = df.rename(columns={
+        'Open': 'Open',
+        'High': 'High', 
+        'Low': 'Low',
+        'Close': 'Close'
+    })
     
-    timestamps = [p.timestamp for p in prices]
-    close_prices = [p.close for p in prices]
+    logger.info(f"Fetched {len(df)} bars from {df.index[0].date()} to {df.index[-1].date()}")
     
-    logger.info(f"Fetched {len(prices)} price records from {timestamps[0]} to {timestamps[-1]}")
-    
-    return timestamps, close_prices
-
-
-def calculate_rsi(prices: list, period: int = 14) -> list:
-    """
-    Calculate RSI for price series.
-    
-    Args:
-        prices: List of closing prices
-        period: RSI period
-        
-    Returns:
-        List of RSI values (same length as prices, with None for initial values)
-    """
-    if len(prices) < period + 1:
-        return [None] * len(prices)
-    
-    rsi_values = [None] * period
-    
-    # Calculate initial average gain/loss
-    deltas = [prices[i] - prices[i-1] for i in range(1, period + 1)]
-    gains = [d if d > 0 else 0 for d in deltas]
-    losses = [-d if d < 0 else 0 for d in deltas]
-    
-    avg_gain = sum(gains) / period
-    avg_loss = sum(losses) / period
-    
-    # Calculate first RSI
-    if avg_loss == 0:
-        rsi = 100
-    else:
-        rs = avg_gain / avg_loss
-        rsi = 100 - (100 / (1 + rs))
-    
-    rsi_values.append(rsi)
-    
-    # Calculate remaining RSI values using smoothed method
-    for i in range(period + 1, len(prices)):
-        delta = prices[i] - prices[i-1]
-        gain = delta if delta > 0 else 0
-        loss = -delta if delta < 0 else 0
-        
-        avg_gain = ((avg_gain * (period - 1)) + gain) / period
-        avg_loss = ((avg_loss * (period - 1)) + loss) / period
-        
-        if avg_loss == 0:
-            rsi = 100
-        else:
-            rs = avg_gain / avg_loss
-            rsi = 100 - (100 / (1 + rs))
-        
-        rsi_values.append(rsi)
-    
-    return rsi_values
+    return df
 
 
 def run_backtest():
     """Run the backtest and display results."""
-    try:
-        # Load config
-        config = load_config("config/config.yaml")
-        
-        # Initialize database
-        db_path = config.db_path
-        init_db(db_path)
-        session = get_session()
-        
-        logger.info("=" * 60)
-        logger.info("BTC/USD Backtest - RSI Strategy")
-        logger.info("=" * 60)
-        
-        # Fetch historical data
-        timestamps, prices = fetch_historical_prices(session, days=365)
-        
-        if not prices:
-            logger.error("No price data available. Please fetch historical data first.")
-            logger.info("Run: python -m btc_monitor fetch-historical --days 365")
-            return
-        
-        # Calculate RSI
-        logger.info("Calculating RSI indicator...")
-        rsi_values = calculate_rsi(prices, period=14)
-        
-        # Create strategy
-        strategy = RSIStrategy(rsi_period=14, oversold=30.0, overbought=70.0)
-        
-        # Run backtest
-        logger.info("Running backtest...")
-        backtester = Backtester(initial_capital=10000.0, commission=0.001)
-        result = backtester.run_backtest(strategy, timestamps, prices, rsi_values)
-        
-        # Display results
-        print("\n" + "=" * 60)
-        print("BACKTEST RESULTS")
-        print("=" * 60)
-        print(f"Strategy: {result.strategy_name}")
-        print(f"Period: {result.start_date.date()} to {result.end_date.date()}")
-        print(f"Initial Capital: ${result.initial_capital:,.2f}")
-        print(f"Final Capital: ${result.final_capital:,.2f}")
-        print(f"Total Return: ${result.total_return:,.2f} ({result.total_return_percent:+.2f}%)")
-        print(f"\nTrade Statistics:")
-        print(f"  Total Trades: {result.num_trades}")
-        print(f"  Winning: {result.winning_trades}")
-        print(f"  Losing: {result.losing_trades}")
-        print(f"  Win Rate: {result.win_rate:.1f}%")
-        print(f"\nRisk Metrics:")
-        print(f"  Max Drawdown: ${result.max_drawdown:,.2f} ({result.max_drawdown_percent:.2f}%)")
-        print(f"  Sharpe Ratio: {result.sharpe_ratio:.2f}")
-        print("=" * 60)
-        
-        # Generate PineScript
-        print("\nGenerating PineScript for TradingView verification...")
-        pinescript = generate_pinescript_for_strategy(strategy)
-        
-        # Save PineScript to file
-        pinescript_file = "strategy_rsi.pine"
-        with open(pinescript_file, "w") as f:
-            f.write(pinescript)
-        
-        print(f"PineScript saved to: {pinescript_file}")
-        print("\n" + "=" * 60)
-        print("PINESCRIPT CODE:")
-        print("=" * 60)
-        print(pinescript)
-        print("=" * 60)
-        
-        print("\n" + "=" * 60)
-        print("VERIFICATION STEPS:")
-        print("=" * 60)
-        print("1. Copy the PineScript code above")
-        print("2. Open TradingView (tradingview.com)")
-        print("3. Open Pine Editor (bottom panel)")
-        print("4. Paste the code and click 'Add to Chart'")
-        print("5. Compare the strategy results with the backtest above")
-        print("6. Results should match 100% if implemented correctly")
-        print("=" * 60)
-        
-        session.close()
-        
-    except Exception as e:
-        logger.error(f"Backtest failed: {e}")
-        import traceback
-        traceback.print_exc()
+    logger.info("=" * 60)
+    logger.info("BTC/USD Backtest - RSI Strategy")
+    logger.info("=" * 60)
+    
+    # Fetch data
+    df = fetch_btc_data(days=365)
+    
+    # Create strategy
+    strategy = RSIStrategy(rsi_period=14, oversold=30.0, overbought=70.0)
+    
+    # Generate signals (adds long_entry, long_exit columns)
+    df = strategy.generate_signals(df)
+    
+    # Configure backtest to match TradingView settings
+    config = BacktestConfig(
+        initial_capital=10000.0,
+        commission_pct=0.1,  # 0.1% = matches TradingView default
+        slippage_ticks=0,
+        qty_type="percent_of_equity",
+        qty_value=100.0,
+        pyramiding=1,
+        start_date="2025-01-01",
+        end_date="2026-12-31",
+    )
+    
+    # Run backtest
+    logger.info("Running backtest...")
+    backtester = Backtester(config)
+    kpis = backtester.run_backtest(df)
+    
+    # Display results
+    print("\n" + "=" * 60)
+    print("  BACKTEST CONFIGURATION")
+    print("=" * 60)
+    print(f"  Chart Data:       BTC-USD (yfinance)")
+    print(f"  Date Range:       {kpis['actual_start_date']} to {kpis['actual_end_date']}")
+    print(f"  Initial Capital:  ${config.initial_capital:,.0f}")
+    print(f"  Order Size:       {config.qty_value:.0f}% of equity")
+    print(f"  Commission:       {config.commission_pct}%")
+    print(f"  Slippage:         0 (matching TradingView)")
+    print(f"  Strategy:         {strategy.name}")
+    print("=" * 60)
+    
+    print_kpis(kpis)
+    
+    if kpis.get('trades'):
+        print_trades(kpis['trades'], max_trades=10)
+    
+    # Generate PineScript
+    print("\n" + "=" * 60)
+    print("  TRADINGVIEW VERIFICATION")
+    print("=" * 60)
+    
+    pinescript = strategy.to_pinescript()
+    
+    # Save PineScript
+    pinescript_file = Path(__file__).parent.parent / "strategy_rsi.pine"
+    with open(pinescript_file, "w") as f:
+        f.write(pinescript)
+    
+    print(f"PineScript saved to: {pinescript_file}")
+    print()
+    print("To verify results match TradingView:")
+    print("1. Open TradingView (tradingview.com)")
+    print("2. Open BTC/USD chart (1D timeframe)")
+    print("3. Open Pine Editor (bottom panel)")
+    print("4. Paste the PineScript code")
+    print("5. Click 'Add to Chart'")
+    print("6. Compare Strategy Tester results with this output")
+    print()
+    print("IMPORTANT TradingView settings:")
+    print("- Margin Long: 0%")
+    print("- Margin Short: 0%")
+    print("- Commission: 0.1%")
+    print("- Slippage: 0")
+    print("=" * 60)
+    
+    # Print PineScript
+    print("\n" + "=" * 60)
+    print("  PINESCRIPT CODE")
+    print("=" * 60)
+    print(pinescript)
 
 
 if __name__ == "__main__":
