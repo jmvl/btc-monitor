@@ -131,5 +131,6 @@ Thumbs.db
 
 # Project specific
 config/local_config.yaml
+config/config.yaml
 *.db
 *.sqlite

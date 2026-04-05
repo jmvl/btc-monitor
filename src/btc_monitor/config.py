@@ -36,6 +36,15 @@ class ResearchConfig(BaseModel):
     hours_back: int = Field(default=48, ge=1, le=336)  # Max 2 weeks
 
 
+class CoinMarketCapConfig(BaseModel):
+    """CoinMarketCap API configuration."""
+    api_key: str = ""
+    max_retries: int = Field(default=3, ge=1, le=10)
+    initial_backoff: float = Field(default=1.0, ge=0.1, le=60.0)
+    max_backoff: float = Field(default=60.0, ge=1.0, le=600.0)
+    use_circuit_breaker: bool = Field(default=True)
+
+
 class DatabaseConfig(BaseModel):
     """Database configuration."""
     url: str = "sqlite:///btc_monitor.db"
@@ -86,6 +95,7 @@ class LoggingConfig(BaseModel):
     """Logging configuration."""
     level: str = Field(default="INFO")
     file: str = "btc_monitor.log"
+    error_file: str = "error.log"
 
     @field_validator("level")
     @classmethod
@@ -109,6 +119,7 @@ class Config(BaseSettings):
     twitter: TwitterConfig = Field(default_factory=TwitterConfig)
     news: NewsConfig = Field(default_factory=NewsConfig)
     research: ResearchConfig = Field(default_factory=ResearchConfig)
+    coinmarketcap: CoinMarketCapConfig = Field(default_factory=CoinMarketCapConfig)
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
     data_sources: DataSourcesConfig = Field(default_factory=DataSourcesConfig)
     analysis: AnalysisConfig = Field(default_factory=AnalysisConfig)
@@ -132,6 +143,11 @@ class Config(BaseSettings):
     def news_api_key(self) -> str:
         """Get News API key."""
         return self.news.api_key
+
+    @property
+    def coinmarketcap_api_key(self) -> str:
+        """Get CoinMarketCap API key."""
+        return self.coinmarketcap.api_key
 
     @property
     def refresh_interval(self) -> int:

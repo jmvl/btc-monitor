@@ -1,0 +1,58 @@
+// Supertrend Strategy - BTC/USD
+// Matches Python backtest settings: ATR Period 10, Multiplier 3.0
+// Commission: 0.1%, Margin: 0%
+
+//@version=5
+strategy("Supertrend Strategy", overlay=true, initial_capital=1000,
+         default_qty_type=strategy.percent_of_equity, default_qty_value=100,
+         commission_type=strategy.commission.percent, commission_value=0.1,
+         margin_long=0, margin_short=0)
+
+// === INPUTS ===
+atrPeriod = input.int(10, "ATR Period", minval=1)
+factor = input.float(3.0, "Factor", minval=0.1, step=0.1)
+
+// === SUPERTREND CALCULATION ===
+[superTrendLine, direction] = ta.supertrend(factor, atrPeriod)
+
+// Direction: -1 = downtrend (red), 1 = uptrend (green)
+isUptrend = direction < 0
+isDowntrend = direction > 0
+
+// === SIGNALS ===
+// Entry: Supertrend flips from red to green
+longEntry = ta.change(direction) < 0
+
+// Exit: Supertrend flips from green to red  
+longExit = ta.change(direction) > 0
+
+// === EXECUTE TRADES ===
+if (longEntry)
+    strategy.entry("Long", strategy.long)
+
+if (longExit)
+    strategy.close("Long")
+
+// === PLOTTING ===
+// Plot Supertrend line
+upTrend = plot(isUptrend ? superTrendLine : na, "Uptrend", color=color.green, linewidth=2)
+downTrend = plot(isDowntrend ? superTrendLine : na, "Downtrend", color=color.red, linewidth=2)
+
+// Fill between trends
+fill(upTrend, downTrend, color=isUptrend ? color.new(color.green, 90) : color.new(color.red, 90))
+
+// Plot buy/sell signals
+plotshape(longEntry, "Buy", shape.triangleup, location.belowbar, color.green, size=size.small)
+plotshape(longExit, "Sell", shape.triangledown, location.abovebar, color.red, size=size.small)
+
+// === INFO TABLE ===
+var table infoTable = table.new(position.top_right, 2, 4)
+if barstate.islast
+    table.cell(infoTable, 0, 0, "ATR Period", bgcolor=color.gray, text_color=color.white)
+    table.cell(infoTable, 1, 0, str.tostring(atrPeriod), bgcolor=color.gray, text_color=color.white)
+    table.cell(infoTable, 0, 1, "Factor", bgcolor=color.gray, text_color=color.white)
+    table.cell(infoTable, 1, 1, str.tostring(factor), bgcolor=color.gray, text_color=color.white)
+    table.cell(infoTable, 0, 2, "Trend", bgcolor=isUptrend ? color.green : color.red, text_color=color.white)
+    table.cell(infoTable, 1, 2, isUptrend ? "UPTREND" : "DOWNTREND", bgcolor=isUptrend ? color.green : color.red, text_color=color.white)
+    table.cell(infoTable, 0, 3, "Supertrend", bgcolor=color.gray, text_color=color.white)
+    table.cell(infoTable, 1, 3, "$" + str.tostring(superTrendLine, "#,###"), bgcolor=color.gray, text_color=color.white)

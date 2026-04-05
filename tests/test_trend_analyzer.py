@@ -99,12 +99,12 @@ def test_fetch_latest_price_data(temp_db_path, timestamp):
     # Create test data
     price1 = PriceData(
         timestamp=timestamp - timedelta(hours=2),
-        price=45000.0,
+        close=45000.0,
         volume=1000.0
     )
     price2 = PriceData(
         timestamp=timestamp - timedelta(hours=1),
-        price=46000.0,
+        close=46000.0,
         volume=1100.0
     )
     session.add_all([price1, price2])
@@ -115,7 +115,7 @@ def test_fetch_latest_price_data(temp_db_path, timestamp):
     
     assert result is not None
     assert result.timestamp == price2.timestamp
-    assert result.price == 46000.0
+    assert result.close == 46000.0
 
 
 def test_fetch_latest_price_data_none(temp_db_path, timestamp):
@@ -547,7 +547,7 @@ def test_analyze_complete(temp_db_path, timestamp):
     # Create test data
     price = PriceData(
         timestamp=timestamp - timedelta(hours=1),
-        price=46000.0,
+        close=46000.0,
         volume=1000.0
     )
     tech = TechnicalIndicators(
@@ -591,7 +591,7 @@ def test_analyze_no_technical_indicators(temp_db_path, timestamp):
     # Only create price data (no indicators)
     price = PriceData(
         timestamp=timestamp - timedelta(hours=1),
-        price=46000.0,
+        close=46000.0,
         volume=1000.0
     )
     session.add(price)
@@ -635,7 +635,7 @@ def test_analyze_no_sentiment_data(temp_db_path, timestamp):
     # Create price and technical indicators (no sentiment)
     price = PriceData(
         timestamp=timestamp - timedelta(hours=1),
-        price=46000.0,
+        close=46000.0,
         volume=1000.0
     )
     tech = TechnicalIndicators(
@@ -665,7 +665,7 @@ def test_analyze_with_old_sentiment_data(temp_db_path, timestamp):
     # Create price and technical indicators
     price = PriceData(
         timestamp=timestamp - timedelta(hours=1),
-        price=46000.0,
+        close=46000.0,
         volume=1000.0
     )
     tech = TechnicalIndicators(

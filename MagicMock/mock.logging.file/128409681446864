@@ -1,0 +1,13 @@
+2026-02-15 07:53:09 - btc_monitor.logging - INFO - ============================================================
+2026-02-15 07:53:09 - btc_monitor.logging - INFO - BTC Monitor logging initialized
+2026-02-15 07:53:09 - btc_monitor.logging - INFO - Log level: INFO
+2026-02-15 07:53:09 - btc_monitor.logging - INFO - Main log file: <MagicMock name='mock.logging.file' id='128409681446864'>
+2026-02-15 07:53:09 - btc_monitor.logging - INFO - Error log file: <MagicMock name='mock.logging.error_file' id='128409681450560'>
+2026-02-15 07:53:09 - btc_monitor.logging - INFO - ============================================================
+2026-02-15 07:53:09 - root - INFO - Starting monitoring loop (interval: 300s)
+2026-02-15 07:53:09 - root - INFO - Press Ctrl+C to stop
+2026-02-15 07:53:09 - root - INFO - Cycle #1
+2026-02-15 07:53:09 - root - INFO - Running once, exiting...
+2026-02-15 07:53:09 - root - INFO - Shutdown requested, stopping...
+2026-02-15 07:53:09 - root - INFO - Database session closed
+2026-02-15 07:53:09 - root - INFO - BTC Monitor stopped after 1 cycles

@@ -72,7 +72,7 @@ class TestPriceDataModel:
         inspector = inspect(engine)
         columns = [col["name"] for col in inspector.get_columns("price_data")]
         
-        expected_columns = {"timestamp", "price", "volume"}
+        expected_columns = {"timestamp", "open_price", "high", "low", "close", "volume"}
         assert set(columns) == expected_columns
     
     def test_price_data_timestamp_is_primary_key(self, temp_db_path: Path) -> None:
@@ -98,14 +98,14 @@ class TestPriceDataModel:
         price = 45000.50
         volume = 1000000.0
         
-        price_entry = PriceData(timestamp=timestamp, price=price, volume=volume)
+        price_entry = PriceData(timestamp=timestamp, close=price, volume=volume)
         db_session.add(price_entry)
         db_session.commit()
         
         retrieved = db_session.query(PriceData).filter_by(timestamp=timestamp).first()
         
         assert retrieved is not None
-        assert retrieved.price == price
+        assert retrieved.close == price
         assert retrieved.volume == volume
         assert retrieved.timestamp == timestamp
     
@@ -114,14 +114,14 @@ class TestPriceDataModel:
         timestamp = datetime(2024, 1, 2, 12, 0, 0)
         price = 46000.75
         
-        price_entry = PriceData(timestamp=timestamp, price=price)
+        price_entry = PriceData(timestamp=timestamp, close=price)
         db_session.add(price_entry)
         db_session.commit()
         
         retrieved = db_session.query(PriceData).filter_by(timestamp=timestamp).first()
         
         assert retrieved is not None
-        assert retrieved.price == price
+        assert retrieved.close == price
         assert retrieved.volume is None
 
 
@@ -172,7 +172,7 @@ class TestTechnicalIndicatorsModel:
         """Test that we can insert and retrieve technical indicators."""
         # First create price data
         price_timestamp = datetime(2024, 1, 1, 12, 0, 0)
-        price_entry = PriceData(timestamp=price_timestamp, price=45000.0)
+        price_entry = PriceData(timestamp=price_timestamp, close=45000.0)
         db_session.add(price_entry)
         
         # Create technical indicators
@@ -354,7 +354,7 @@ class TestRelationships:
         timestamp = datetime(2024, 1, 1, 12, 0, 0)
         
         # Create price data
-        price_entry = PriceData(timestamp=timestamp, price=45000.0)
+        price_entry = PriceData(timestamp=timestamp, close=45000.0)
         db_session.add(price_entry)
         
         # Create technical indicators
@@ -376,4 +376,4 @@ class TestRelationships:
             timestamp=timestamp
         ).first()
         assert retrieved_indicators.price_data is not None
-        assert retrieved_indicators.price_data.price == 45000.0
+        assert retrieved_indicators.price_data.close == 45000.0

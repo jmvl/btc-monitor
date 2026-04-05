@@ -1,0 +1,42 @@
+2026-02-13 12:39:04 - btc_monitor.logging - INFO - ============================================================
+2026-02-13 12:39:04 - btc_monitor.logging - INFO - BTC Monitor logging initialized
+2026-02-13 12:39:04 - btc_monitor.logging - INFO - Log level: INFO
+2026-02-13 12:39:04 - btc_monitor.logging - INFO - Main log file: <MagicMock name='mock.logging.file' id='125572559598896'>
+2026-02-13 12:39:04 - btc_monitor.logging - INFO - Error log file: <MagicMock name='mock.logging.error_file' id='125572560241632'>
+2026-02-13 12:39:04 - btc_monitor.logging - INFO - ============================================================
+2026-02-13 12:39:04 - root - INFO - Starting monitoring loop (interval: 60s)
+2026-02-13 12:39:04 - root - INFO - Press Ctrl+C to stop
+2026-02-13 12:39:04 - root - INFO - Cycle #1
+2026-02-13 12:39:04 - root - INFO - Running once, exiting...
+2026-02-13 12:39:04 - root - INFO - Shutdown requested, stopping...
+2026-02-13 12:39:04 - root - INFO - Database session closed
+2026-02-13 12:39:04 - root - INFO - BTC Monitor stopped after 1 cycles
+2026-02-13 12:39:09 - root - INFO - ============================================================
+2026-02-13 12:39:09 - root - INFO - Starting monitoring cycle
+2026-02-13 12:39:09 - root - INFO - Step 1: Fetching current price...
+2026-02-13 12:39:09 - root - INFO - Current price: $50000.00
+2026-02-13 12:39:09 - root - INFO - Step 2: Calculating technical indicators...
+2026-02-13 12:39:09 - btc_monitor.indicators - WARNING - RSI calculation returned None [period=14, timestamp=2026-02-13 12:39:09.331477+00:00]
+2026-02-13 12:39:09 - root - INFO - RSI calculated with period 14
+2026-02-13 12:39:09 - btc_monitor.indicators - WARNING - MACD calculation returned None [fast=12, slow=26, signal=9, timestamp=2026-02-13 12:39:09.331477+00:00]
+2026-02-13 12:39:09 - root - INFO - MACD calculated (12/26/9)
+2026-02-13 12:39:09 - btc_monitor.indicators - WARNING - MovingAverages calculation returned None [sma_50=50, sma_200=200, timestamp=2026-02-13 12:39:09.331477+00:00]
+2026-02-13 12:39:09 - root - INFO - Moving averages calculated: [20, 50, 200]
+2026-02-13 12:39:09 - root - INFO - Step 3: Collecting sentiment data...
+2026-02-13 12:39:09 - root - ERROR - Failed to collect Twitter sentiment: Consumer key must be string or bytes, not MagicMock
+2026-02-13 12:39:09 - btc_monitor.sentiment - INFO - No NewsAPI key provided, using web scraping
+2026-02-13 12:39:09 - btc_monitor.sentiment - INFO - Scraping news from CoinDesk: https://www.coindesk.com/bitcoin/
+2026-02-13 12:39:09 - btc_monitor.sentiment - INFO - Scraped 0 articles from CoinDesk
+2026-02-13 12:39:09 - btc_monitor.sentiment - INFO - Scraping news from Cointelegraph: https://cointelegraph.com/tags/bitcoin
+2026-02-13 12:39:10 - btc_monitor.sentiment - INFO - Scraped 0 articles from Cointelegraph
+2026-02-13 12:39:10 - btc_monitor.sentiment - INFO - Collected 0 sentiment entries from news
+2026-02-13 12:39:10 - btc_monitor.sentiment - INFO - Scraping research from TradingView: https://www.tradingview.com/symbols/BTCUSD/ideas/
+2026-02-13 12:39:10 - btc_monitor.sentiment - INFO - Scraped 0 research items from TradingView
+2026-02-13 12:39:10 - btc_monitor.sentiment - INFO - Collected 0 sentiment entries from research
+2026-02-13 12:39:10 - root - WARNING - No sentiment data collected in this cycle
+2026-02-13 12:39:10 - root - INFO - Step 4: Analyzing trend...
+2026-02-13 12:39:10 - root - INFO - Trend: BULLISH
+2026-02-13 12:39:10 - root - INFO - Confidence: 75.0%
+2026-02-13 12:39:10 - root - INFO - Indicators: Test summary
+2026-02-13 12:39:10 - root - INFO - Monitoring cycle completed successfully
+2026-02-13 12:39:10 - root - INFO - ============================================================

@@ -22,6 +22,15 @@ research:
   max_items: 30
   hours_back: 48
 
+# CoinMarketCap API
+# Get your API key from https://pro.coinmarketcap.com/signup
+coinmarketcap:
+  api_key: "your_coinmarketcap_api_key_here"  # Leave empty to use yfinance fallback
+  max_retries: 3  # Maximum retry attempts
+  initial_backoff: 1.0  # Initial retry backoff in seconds
+  max_backoff: 60.0  # Maximum retry backoff in seconds
+  use_circuit_breaker: true  # Enable circuit breaker pattern
+
 # Database
 database:
   url: "sqlite:///btc_monitor.db"

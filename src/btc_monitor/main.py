@@ -20,6 +20,8 @@ from typing import Optional
 from btc_monitor.config import load_config
 from btc_monitor.database import init_db, get_session
 from btc_monitor.fetchers import PriceFetcher
+from btc_monitor.coinmarketcap import CoinMarketCapFetcher
+from btc_monitor.logging import setup_logging
 from btc_monitor.indicators import RSI, MACD, MovingAverages
 from btc_monitor.sentiment import (
     TwitterSentimentCollector,
@@ -47,7 +49,7 @@ def signal_handler(signum, frame):
     shutdown_requested = True
 
 
-def setup_logging(config_file: str, log_level: str, log_file: str):
+def setup_logging(config_file: str, log_level: str, log_file: str, error_log_file: str):
     """
     Set up logging configuration.
 
@@ -55,27 +57,18 @@ def setup_logging(config_file: str, log_level: str, log_file: str):
         config_file: Path to configuration file (for context in logs)
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
         log_file: Path to log file
+        error_log_file: Path to error log file
     """
-    log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    date_format = "%Y-%m-%d %H:%M:%S"
+    from btc_monitor.logging import setup_logging as btc_setup_logging
 
-    # Configure logging to both file and console
-    handlers = [
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler(log_file),
-    ]
-
-    logging.basicConfig(
-        level=getattr(logging, log_level.upper()),
-        format=log_format,
-        datefmt=date_format,
-        handlers=handlers,
+    btc_setup_logging(
+        config=None,
+        log_level=log_level,
+        log_file=log_file,
+        error_log_file=error_log_file,
     )
 
-    logging.info(f"BTC Monitor starting")
     logging.info(f"Configuration file: {config_file}")
-    logging.info(f"Log level: {log_level.upper()}")
-    logging.info(f"Log file: {log_file}")
 
 
 def run_monitoring_cycle(
@@ -103,7 +96,14 @@ def run_monitoring_cycle(
         if price_data is None:
             logging.error("Failed to fetch price data")
             return False
-        logging.info(f"Current price: ${price_data.price:.2f} (volume: {price_data.volume:,.0f})")
+        
+        # Extract OHLCV data if it's a dict (CoinMarketCap returns dict)
+        if isinstance(price_data, dict):
+            logging.info(f"Current price: ${price_data.get('close', 0):.2f} (OHLCV)")
+        elif hasattr(price_data, 'close'):
+            logging.info(f"Current price: ${price_data.close:.2f} (volume: {price_data.volume:,.0f})")
+        else:
+            logging.info(f"Current price: ${price_data:.2f}")
 
         # Step 2: Calculate technical indicators
         logging.info("Step 2: Calculating technical indicators...")
@@ -213,6 +213,7 @@ def main(
     config_file: Optional[str] = None,
     log_level: Optional[str] = None,
     log_file: Optional[str] = None,
+    error_log_file: Optional[str] = None,
     once: bool = False,
 ) -> int:
     """
@@ -239,9 +240,11 @@ def main(
             log_level = config.log_level
         if log_file is None:
             log_file = config.logging.file
+        if error_log_file is None:
+            error_log_file = config.logging.error_file
 
         # Set up logging
-        setup_logging(config_file or "config/config.yaml", log_level, log_file)
+        setup_logging(config_file or "config/config.yaml", log_level, log_file, error_log_file)
 
         # Initialize database
         logging.info("Initializing database...")
@@ -254,7 +257,18 @@ def main(
 
         # Initialize components
         logging.info("Initializing components...")
-        price_fetcher = PriceFetcher(db_path=db_path)
+        
+        # Choose price fetcher based on configuration
+        if config.coinmarketcap.api_key:
+            price_fetcher = CoinMarketCapFetcher(
+                api_key=config.coinmarketcap.api_key,
+                db_path=db_path,
+            )
+            logging.info("Using CoinMarketCap API (primary) for price fetching")
+        else:
+            price_fetcher = PriceFetcher(db_path=db_path)
+            logging.info("Using CoinMarketCap API not configured, using yfinance as fallback source")
+        
         trend_analyzer = TrendAnalyzer(
             sentiment_window_hours=24,
             max_data_age_hours=1,
@@ -336,6 +350,12 @@ if __name__ == "__main__":
         help="Path to log file (overrides config)",
     )
     parser.add_argument(
+        "--error-log-file",
+        type=str,
+        default=None,
+        help="Path to error log file (overrides config)",
+    )
+    parser.add_argument(
         "--once",
         action="store_true",
         help="Run once and exit (don't loop)",
@@ -343,4 +363,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    sys.exit(main(args.config, args.log_level, args.log_file, args.once))
+    sys.exit(main(args.config, args.log_level, args.log_file, args.error_log_file, args.once))

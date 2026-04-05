@@ -44,3 +44,4 @@ analysis:
 logging:
   level: "INFO"
   file: "btc_monitor.log"
+  error_file: "error.log"

@@ -78,11 +78,15 @@ For full functionality, you may need:
 
 - **Twitter API**: API keys from https://developer.twitter.com/
 - **News API**: API key from https://newsapi.org/
-- **yfinance**: Automatic install via pip
+- **CoinMarketCap API**: API key from https://pro.coinmarketcap.com/signup (recommended over yfinance)
+- **yfinance**: Fallback price data source (automatic install via pip)
+- **requests**: For CoinMarketCap API (automatic install via pip)
 
 ## Configuration
 
 ### Setup Configuration File
+
+**Security Notice:** Never commit `config/config.yaml` to version control. This file contains sensitive API keys and secrets. It has been added to `.gitignore` to prevent accidental commits.
 
 1. Copy the example configuration:
 ```bash
@@ -109,6 +113,14 @@ news:
 research:
   max_items: 30
   hours_back: 48
+
+# CoinMarketCap API (recommended)
+coinmarketcap:
+  api_key: "your_coinmarketcap_api_key_here"  # Leave empty to use yfinance fallback
+  max_retries: 3
+  initial_backoff: 1.0
+  max_backoff: 60.0
+  use_circuit_breaker: true
 
 # Database
 database:
@@ -145,10 +157,52 @@ You can override configuration with environment variables (prefix: `BTC_MONITOR_
 export BTC_MONITOR_TWITTER__BEARER_TOKEN="your_token"
 export BTC_MONITOR_NEWS__API_KEY="your_news_key"
 export BTC_MONITOR_DATA_SOURCES__UPDATE_INTERVAL=300
+export BTC_MONITOR_COINMARKETCAP__API_KEY="your_api_key_here"
 export BTC_MONITOR_LOGGING__LEVEL=DEBUG
 ```
 
 Note: Use `__` (double underscore) for nested configuration keys.
+
+## Price Data Sources
+
+### Primary: CoinMarketCap API (recommended)
+Fetches current BTC/USD price with **OHLCV** data (Open, High, Low, Close, Volume) from CoinMarketCap Pro API.
+
+**Features:**
+- 24-hour OHLCV data (high, low, close)
+- Circuit breaker for API resilience
+- Exponential backoff retry logic
+- Request/response time logging
+- Full integration with existing database schema
+
+**Configuration:**
+```yaml
+coinmarketcap:
+  api_key: "your_api_key_here"  # Get from https://pro.coinmarketcap.com/signup
+  max_retries: 3
+  initial_backoff: 1.0
+  max_backoff: 60.0
+  use_circuit_breaker: true
+```
+
+### Fallback: yfinance
+When CoinMarketCap API key is not configured, yfinance is used as fallback (only current price, no OHLCV data).
+
+### Multi-source support
+The system architecture supports multiple price data sources. Currently, CoinMarketCap is primary source when API key is configured, with yfinance as automatic fallback.
+
+**OHLCV Data Structure:**
+- **timestamp**: UTC timestamp
+- **open_price**: Opening price for the period
+- **high**: Highest price for the period
+- **low**: Lowest price for the period
+- **close**: Current price at data fetch
+- **volume**: Trading volume for the period
+
+This OHLCV format provides more complete price data for technical analysis, especially for volatility calculations and charting.
+
+### Environment Variable
+`BTC_MONITOR_COINMARKETCAP__API_KEY` - Override CoinMarketCap API key from environment
 
 ## Usage
 

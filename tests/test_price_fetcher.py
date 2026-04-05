@@ -133,7 +133,7 @@ class TestSaveToDatabase:
         """Test that save_to_database saves data successfully."""
         test_data = PriceData(
             timestamp=datetime(2024, 1, 1, 12, 0),
-            price=45000.0,
+            close=45000.0,
             volume=1000000.0,
         )
         
@@ -144,7 +144,7 @@ class TestSaveToDatabase:
         """Test that saved data can be retrieved from database."""
         test_data = PriceData(
             timestamp=datetime(2024, 1, 1, 12, 0),
-            price=45000.0,
+            close=45000.0,
             volume=1000000.0,
         )
         
@@ -158,7 +158,7 @@ class TestSaveToDatabase:
                 PriceData.timestamp == datetime(2024, 1, 1, 12, 0)
             ).first()
             assert saved_data is not None
-            assert saved_data.price == 45000.0
+            assert saved_data.close == 45000.0
             assert saved_data.volume == 1000000.0
         finally:
             session.close()
@@ -167,7 +167,7 @@ class TestSaveToDatabase:
         """Test that save_to_database updates existing records."""
         test_data = PriceData(
             timestamp=datetime(2024, 1, 1, 12, 0),
-            price=45000.0,
+            close=45000.0,
             volume=1000000.0,
         )
         
@@ -177,7 +177,7 @@ class TestSaveToDatabase:
         # Update with new data
         updated_data = PriceData(
             timestamp=datetime(2024, 1, 1, 12, 0),
-            price=46000.0,
+            close=46000.0,
             volume=2000000.0,
         )
         fetcher.save_to_database(updated_data)
@@ -190,7 +190,7 @@ class TestSaveToDatabase:
                 PriceData.timestamp == datetime(2024, 1, 1, 12, 0)
             ).first()
             assert saved_data is not None
-            assert saved_data.price == 46000.0
+            assert saved_data.close == 46000.0
             assert saved_data.volume == 2000000.0
         finally:
             session.close()
@@ -222,7 +222,7 @@ class TestFetchAndSaveCurrentPrice:
                     PriceData.timestamp >= recent
                 ).first()
                 assert saved_data is not None
-                assert saved_data.price == price
+                assert saved_data.close == price
             finally:
                 session.close()
 
