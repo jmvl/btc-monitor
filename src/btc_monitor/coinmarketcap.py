@@ -89,7 +89,7 @@ class CoinMarketCapFetcher:
 
         return None
 
-    def _make_request(self, endpoint: str, params: dict = None) -> Optional[dict]:
+    def _make_request(self, endpoint: str, params: Optional[dict] = None) -> Optional[dict[str, Any]]:
         """
         Make an authenticated request to CoinMarketCap API.
 
@@ -105,9 +105,9 @@ class CoinMarketCapFetcher:
             "Accepts": "application/json",
             "X-CMC_PRO_API_KEY": self.api_key,
         }
+        start_time = time.time()
 
-        def _request():
-            start_time = time.time()
+        def _request() -> dict[str, Any]:
             try:
                 response = requests.get(
                     url,
@@ -125,7 +125,8 @@ class CoinMarketCapFetcher:
                 )
 
                 response.raise_for_status()
-                return response.json()
+                result: dict[str, Any] = response.json()
+                return result
 
             except Exception as e:
                 response_time_ms = (time.time() - start_time) * 1000
@@ -143,13 +144,13 @@ class CoinMarketCapFetcher:
             else:
                 result = self._retry_with_backoff(_request)
 
-            return result
+            return result  # type: ignore[no-any-return]
 
         except CircuitBreakerOpenError as e:
             logger.error(f"Circuit breaker is blocking API calls: {e}")
             return None
 
-    def get_current_price(self) -> Optional[dict]:
+    def get_current_price(self) -> Optional[dict[str, Any]]:
         """
         Get current BTC/USD price with OHLCV data.
 
@@ -160,7 +161,8 @@ class CoinMarketCapFetcher:
             ValueError: If price is out of valid range.
             CircuitBreakerOpenError: If circuit breaker is blocking calls.
         """
-        def _fetch():
+        def _fetch() -> dict[str, Any]:
+            start_time = time.time()
             # Use quotes/latest endpoint for current OHLCV data
             data = self._make_request(
                 "/cryptocurrency/quotes/latest",
@@ -216,13 +218,14 @@ class CoinMarketCapFetcher:
             }
 
         try:
-            price = self._retry_with_backoff(_fetch)
+            result = self._retry_with_backoff(_fetch)
 
-            if price is None:
+            if result is None:
                 logger.error("Failed to fetch current price after all retries")
                 return None
 
-            logger.info(f"Current BTC/USD price: ${price:,.2f}")
+            price: dict[str, Any] = result
+            logger.info(f"Current BTC/USD price: ${price['close']:,.2f}")
             return price
 
         except CircuitBreakerOpenError as e:
@@ -233,7 +236,7 @@ class CoinMarketCapFetcher:
         self,
         start_date: Union[datetime, str],
         end_date: Union[datetime, str],
-    ) -> List[PriceData]:  # type: ignore[override]
+    ) -> List[PriceData]:
         """
         Get historical BTC/USD price data for a date range.
 
@@ -244,7 +247,7 @@ class CoinMarketCapFetcher:
         Returns:
             List of PriceData objects.
         """
-        def _fetch():
+        def _fetch() -> dict[str, Any]:
             # Use tools/price-converter endpoint for historical data
             # Note: This requires a different endpoint than current price
             data = self._make_request(
@@ -273,28 +276,30 @@ class CoinMarketCapFetcher:
             else:
                 ts = datetime.fromisoformat(start_date)
 
-            price_data = PriceData(timestamp=ts, price=price, volume=None)
+            price_data = PriceData(timestamp=ts, close=price, volume=None)  # type: ignore[call-arg]
 
-            return [price_data]
+            return [price_data]  # type: ignore[return-value]
 
         try:
             if self.use_circuit_breaker and self.circuit_breaker:
-                records = self.circuit_breaker.call(_fetch)
+                records_raw = self.circuit_breaker.call(_fetch)
+                records_list = records_raw if isinstance(records_raw, list) else []
             else:
-                records = self._retry_with_backoff(_fetch)
+                records_raw = self._retry_with_backoff(_fetch)
+                records_list = records_raw if isinstance(records_raw, list) else []
 
-            if not records:
+            if not records_list:
                 logger.error("Failed to fetch historical data after all retries")
                 return []
 
-            logger.info(f"Fetched {len(records)} historical price records")
-            return records
+            logger.info(f"Fetched {len(records_list)} historical price records")
+            return records_list
 
         except CircuitBreakerOpenError as e:
             logger.error(f"Circuit breaker is blocking API calls: {e}")
             return []
 
-    def save_to_database(self, price_data: dict) -> bool:
+    def save_to_database(self, price_data: dict[str, Any]) -> bool:
         """
         Save a single price data record with OHLCV data to database.
 
@@ -307,7 +312,7 @@ class CoinMarketCapFetcher:
         from btc_monitor.logging import log_database_operation
 
         try:
-            session = get_session(self.db_path)
+            session = get_session(self.db_path if self.db_path is not None else "")
             try:
                 # Check if record already exists (upsert logic)
                 existing = session.query(PriceData).filter(
@@ -321,11 +326,12 @@ class CoinMarketCapFetcher:
                     existing.open_price = price_data.get("open")
                     existing.high = price_data.get("high")
                     existing.low = price_data.get("low")
-                    existing.close = price_data.get("close")
+                    if price_data.get("close") is not None:
+                        existing.close = price_data["close"]
                     existing.volume = price_data.get("volume")
                 else:
                     # Insert new record with OHLCV data
-                    record = PriceData(
+                    record = PriceData(  # type: ignore[call-arg]
                         timestamp=price_data["timestamp"],
                         open_price=price_data.get("open"),
                         high=price_data.get("high"),
@@ -352,7 +358,7 @@ class CoinMarketCapFetcher:
             logger.error(f"Failed to get database session: {e}")
             return False
 
-    def fetch_and_save_current_price(self) -> Optional[dict]:
+    def fetch_and_save_current_price(self) -> Optional[dict[str, Any]]:
         """
         Fetch current price with OHLCV data and save it to database.
         
@@ -399,20 +405,28 @@ class CoinMarketCapFetcher:
 
         saved_count = 0
         for record in price_records:
-            if self.save_to_database(record):
+            rec_dict: dict[str, Any] = {
+                "timestamp": record.timestamp,
+                "open": record.open_price,
+                "high": record.high,
+                "low": record.low,
+                "close": record.close,
+                "volume": record.volume,
+            }
+            if self.save_to_database(rec_dict):
                 saved_count += 1
 
         logger.info(f"Saved {saved_count}/{len(price_records)} price records to database")
         return saved_count
 
-    def get_health(self) -> dict:
+    def get_health(self) -> dict[str, Any]:
         """
         Get health status of the CoinMarketCap fetcher.
 
         Returns:
             Dictionary with health information.
         """
-        health = {
+        health: dict[str, Any] = {
             "component": "coinmarketcap_fetcher",
             "status": "healthy",
             "circuit_breaker": None,

@@ -7,15 +7,16 @@ from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from btc_monitor.models import SentimentData
 
 
 class SentimentSource(str, Enum):
     """Valid sentiment data sources."""
     
-    TWITTER: str = "twitter"
-    REDDIT: str = "reddit"
-    NEWS: str = "news"
-    RESEARCH: str = "research"
+    TWITTER = "twitter"
+    REDDIT = "reddit"
+    NEWS = "news"
+    RESEARCH = "research"
 
 
 class SentimentEntry(BaseModel):
@@ -26,7 +27,7 @@ class SentimentEntry(BaseModel):
     content: Optional[str]
     timestamp: datetime
     
-    def to_sentiment_data(self) -> "SentimentData":
+    def to_sentiment_data(self) -> SentimentData:
         """Convert to SentimentData ORM model for database storage."""
         ...
 
@@ -34,7 +35,6 @@ class SentimentEntry(BaseModel):
 class SentimentCollector(ABC):
     """Abstract base class for sentiment data collectors."""
     
-    @staticmethod
     def collect(self) -> List[SentimentEntry]:
         """Collect sentiment data from the source."""
         ...

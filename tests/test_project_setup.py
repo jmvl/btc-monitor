@@ -157,3 +157,14 @@ def test_readme_contains_security_warning():
         "README.md missing mention of .gitignore in security context"
     assert "secret" in content.lower() or "API key" in content or "security" in content.lower(), \
         "README.md security warning lacks appropriate security terminology"
+
+def test_mypy_backtest_passes():
+    """Test that backtest.py passes mypy type checking."""
+    project_root = Path(__file__).parent.parent
+    result = subprocess.run(
+        ["python3", "-m", "mypy", "src/btc_monitor/backtest.py"],
+        capture_output=True,
+        text=True,
+        cwd=project_root,
+    )
+    assert result.returncode == 0, f"Mypy failed with exit code {result.returncode}:\nStdout:\n{result.stdout}\nStderr:\n{result.stderr}"

@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 
 from btc_monitor.models import PriceData
 
@@ -18,7 +18,7 @@ class PriceFetcher:
         db_path: Optional[Union[str, Path]] = ...,
     ) -> None: ...
     
-    def _retry_with_backoff(self, func, *args, **kwargs) -> Optional[Any]: ...
+    def _retry_with_backoff(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> Optional[Any]: ...
     
     def get_current_price(self) -> Optional[float]: ...
     

@@ -11,7 +11,7 @@ Key behaviors replicated:
 import math
 import logging
 from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Tuple, cast
 from dataclasses import dataclass, field
 from enum import Enum
 import pandas as pd
@@ -87,7 +87,7 @@ def calc_smma(series: pd.Series, length: int) -> pd.Series:
         return smma
     
     seed_idx = start + length - 1
-    smma.iloc[seed_idx] = np.mean(vals[start:start + length])
+    smma.iloc[seed_idx] = float(np.mean(vals[start:start + length]))
     
     for i in range(seed_idx + 1, len(vals)):
         if np.isnan(vals[i]):
@@ -115,7 +115,7 @@ def calc_rsi(close: pd.Series, length: int = 14) -> pd.Series:
     
     # Calculate RS and RSI
     rs = avg_gain / avg_loss
-    rsi = 100 - (100 / (1 + rs))
+    rsi: pd.Series = 100 - (100 / (1 + rs))
     
     return rsi
 
@@ -265,7 +265,7 @@ class Backtester:
     4. Queue pending orders for next bar
     """
     
-    def __init__(self, config: BacktestConfig = None):
+    def __init__(self, config: Optional[BacktestConfig] = None):
         """
         Initialize backtester.
         
@@ -298,12 +298,13 @@ class Backtester:
         end = pd.Timestamp(self.config.end_date)
         
         # Ensure timezone consistency
-        if df.index.tz is not None and start.tz is None:
-            start = start.tz_localize('UTC')
-            end = end.tz_localize('UTC')
-        elif df.index.tz is None and start.tz is not None:
-            start = start.tz_convert(None)
-            end = end.tz_convert(None)
+        if isinstance(df.index, pd.DatetimeIndex):
+            if df.index.tz is not None and start.tz is None:
+                start = start.tz_localize('UTC')
+                end = end.tz_localize('UTC')
+            elif df.index.tz is None and start.tz is not None:
+                start = start.tz_convert(None)
+                end = end.tz_convert(None)
         
         # Adjust start if data starts later
         data_first = df.index[0]
@@ -359,6 +360,7 @@ class Backtester:
                 logger.debug(f"BUY at {fill_price:.2f} on {bar_date.date()}")
             
             if pending_exit and position_qty > 0:
+                assert current_trade is not None  # position_qty > 0 implies current_trade is set
                 fill_price = bar["Open"]
                 trade_value = position_qty * fill_price
                 exit_commission = trade_value * self.commission_rate
@@ -449,11 +451,11 @@ class Backtester:
         open_trades = [t for t in trades if t.exit_date is None]
         
         # PnL — net_profit based on CLOSED trades only (matches TV)
-        winning_trades = [t for t in closed_trades if t.pnl > 0]
-        losing_trades = [t for t in closed_trades if t.pnl <= 0]
+        winning_trades = [t for t in closed_trades if t.pnl is not None and t.pnl > 0]
+        losing_trades = [t for t in closed_trades if t.pnl is not None and t.pnl <= 0]
         
-        gross_profit = sum(t.pnl for t in winning_trades)
-        gross_loss = sum(t.pnl for t in losing_trades)
+        gross_profit = sum(t.pnl for t in winning_trades if t.pnl is not None)
+        gross_loss = sum(t.pnl for t in losing_trades if t.pnl is not None)
         net_profit = gross_profit + gross_loss
         net_profit_pct = (net_profit / initial_capital) * 100
         
@@ -473,19 +475,19 @@ class Backtester:
         win_rate = (num_winning / total_trades) * 100 if total_trades > 0 else 0
         
         avg_trade = net_profit / total_trades if total_trades > 0 else 0
-        avg_trade_pct = sum(t.pnl_pct for t in closed_trades) / total_trades if total_trades > 0 else 0
+        avg_trade_pct = sum(t.pnl_pct for t in closed_trades if t.pnl_pct is not None) / total_trades if total_trades > 0 else 0
         avg_winning = gross_profit / num_winning if num_winning > 0 else 0
         avg_losing = gross_loss / num_losing if num_losing > 0 else 0
         avg_win_loss_ratio = abs(avg_winning / avg_losing) if avg_losing != 0 else float("inf")
         
-        largest_winning = max((t.pnl for t in winning_trades), default=0)
-        largest_losing = min((t.pnl for t in losing_trades), default=0)
+        largest_winning = max((t.pnl for t in winning_trades if t.pnl is not None), default=0.0)
+        largest_losing = min((t.pnl for t in losing_trades if t.pnl is not None), default=0.0)
         
         # Consecutive wins/losses
         max_consec_wins = max_consec_losses = 0
         cur_w = cur_l = 0
         for t in closed_trades:
-            if t.pnl > 0:
+            if t.pnl is not None and t.pnl > 0:
                 cur_w += 1
                 cur_l = 0
                 max_consec_wins = max(max_consec_wins, cur_w)
@@ -503,7 +505,7 @@ class Backtester:
             std = daily_returns.std()
             if std != 0:
                 sharpe = (daily_returns.mean() / std) * np.sqrt(365)
-            downside = daily_returns[daily_returns < 0]
+            downside = cast(pd.Series, daily_returns[daily_returns < 0])
             if len(downside) > 0 and downside.std() != 0:
                 sortino = (daily_returns.mean() / downside.std()) * np.sqrt(365)
         
@@ -541,7 +543,7 @@ class Backtester:
         }
 
 
-def print_kpis(kpis: dict):
+def print_kpis(kpis: dict[str, Any]) -> None:
     """Print KPIs matching TradingView's Strategy Tester format."""
     print("=" * 60)
     print("  STRATEGY PERFORMANCE SUMMARY")
@@ -581,7 +583,7 @@ def print_kpis(kpis: dict):
     print("=" * 60)
 
 
-def print_trades(trades: List[Trade], max_trades: int = 0):
+def print_trades(trades: List[Trade], max_trades: int = 0) -> None:
     """Print trade list."""
     print()
     header = (f"  {'#':>3}  {'Entry Date':>12}  {'Entry $':>10}  {'Exit Date':>12}  "
