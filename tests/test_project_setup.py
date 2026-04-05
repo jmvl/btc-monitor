@@ -125,3 +125,35 @@ def test_config_directory_has_files():
     # Check for at least one config file
     config_files = list(config_dir.glob("*.yaml")) + list(config_dir.glob("*.yml"))
     assert len(config_files) > 0, "No YAML configuration files found in config/"
+
+
+def test_config_yaml_gitignored():
+    """Test that config/config.yaml is properly gitignored to prevent secret leakage."""
+    project_root = Path(__file__).parent.parent
+    gitignore = project_root / ".gitignore"
+    
+    assert gitignore.exists(), ".gitignore does not exist"
+    
+    content = gitignore.read_text()
+    
+    # Check that config/config.yaml is explicitly gitignored
+    assert "config/config.yaml" in content, \
+        "config/config.yaml is not in .gitignore - security vulnerability: API keys could be accidentally committed"
+
+
+def test_readme_contains_security_warning():
+    """Test that README warns against committing config.yaml."""
+    project_root = Path(__file__).parent.parent
+    readme = project_root / "README.md"
+    
+    assert readme.exists(), "README.md does not exist"
+    
+    content = readme.read_text()
+    
+    # Check for security warning about config.yaml
+    assert "config/config.yaml" in content, \
+        "README.md missing warning about config/config.yaml"
+    assert "gitignore" in content.lower(), \
+        "README.md missing mention of .gitignore in security context"
+    assert "secret" in content.lower() or "API key" in content or "security" in content.lower(), \
+        "README.md security warning lacks appropriate security terminology"

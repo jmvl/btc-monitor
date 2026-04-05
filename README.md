@@ -86,6 +86,8 @@ For full functionality, you may need:
 
 ### Setup Configuration File
 
+**Security Notice:** Never commit `config/config.yaml` to version control. This file contains sensitive API keys and secrets. It has been added to `.gitignore` to prevent accidental commits.
+
 1. Copy the example configuration:
 ```bash
 cp config/config.example.yaml config/config.yaml
