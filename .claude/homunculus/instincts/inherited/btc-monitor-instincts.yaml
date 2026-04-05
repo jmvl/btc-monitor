@@ -1,0 +1,552 @@
+# Instincts generated from https://github.com/jmvl/btc-monitor
+# Generated: 2026-04-05T12:13:41.598Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: btc-monitor-commit-conventional
+trigger: "when writing a commit message"
+confidence: 0.85
+domain: git
+source: repo-analysis
+source_repo: https://github.com/jmvl/btc-monitor
+---
+
+# Btc Monitor Commit Conventional
+
+## Action
+
+Use conventional commit format with prefixes: feat, fix, chore, docs
+
+## Evidence
+
+- 12 commits analyzed
+- Detected conventional commit pattern
+- Examples: feat: US-016 - Add comprehensive logging and error handling, chore: Update progress.txt with US-016 completion notes
+
+---
+id: btc-monitor-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/jmvl/btc-monitor
+---
+
+# Btc Monitor Commit Length
+
+## Action
+
+Write moderate-length commit messages (~52 characters)
+
+## Evidence
+
+- Average commit message length: 52 chars
+- Based on 12 commits
+
+---
+id: btc-monitor-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/jmvl/btc-monitor
+---
+
+# Btc Monitor Naming Files
+
+## Action
+
+Use PascalCase naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: PascalCase
+
+---
+id: btc-monitor-import-relative
+trigger: "when importing modules"
+confidence: 0.75
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/jmvl/btc-monitor
+---
+
+# Btc Monitor Import Relative
+
+## Action
+
+Use relative imports for project files
+
+## Evidence
+
+- Import analysis shows relative import pattern
+- Example: import { x } from '../lib/x'
+
+---
+id: btc-monitor-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/jmvl/btc-monitor
+---
+
+# Btc Monitor Export Style
+
+## Action
+
+Prefer named exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: named
+
+---
+id: btc-monitor-test-separate
+trigger: "when writing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/jmvl/btc-monitor
+---
+
+# Btc Monitor Test Separate
+
+## Action
+
+Place tests in the tests/ or __tests__/ directory, mirroring src structure
+
+## Evidence
+
+- Separate test directory pattern detected
+- Tests live in dedicated test folders
+
+---
+id: btc-monitor-workflow-feature-development
+trigger: "when implementing a new feature"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/jmvl/btc-monitor
+---
+
+# Btc Monitor Workflow Feature Development
+
+## Action
+
+Follow the feature-development workflow:
+1. Add feature implementation
+2. Add tests for feature
+3. Update documentation
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~23x per month
+- Files: **/*.test.*
+
+---
+id: btc-monitor-workflow-add-new-feature-or-module
+trigger: "when doing add new feature or module"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/jmvl/btc-monitor
+---
+
+# Btc Monitor Workflow Add New Feature Or Module
+
+## Action
+
+Follow the add-new-feature-or-module workflow:
+1. Create new module file(s) in src/btc_monitor/ (e.g., logging.py, coinmarketcap.py, backtest.py)
+2. Update src/btc_monitor/config.py and/or config/config.yaml to add configuration for the new feature
+3. Update src/btc_monitor/main.py to integrate or enable the new feature
+4. Update CLI or scripts if user interaction is required (e.g., src/btc_monitor/cli.py, scripts/run_backtest.py)
+5. Add or update documentation (README.md) to explain usage and configuration
+6. Add new tests or test files (e.g., tests/test_logging.py) to cover the new feature
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: src/btc_monitor/*.py, config/config.yaml, config/config.example.yaml
+
+---
+id: btc-monitor-workflow-extend-database-model-and-update-tests
+trigger: "when doing extend database model and update tests"
+confidence: 0.55
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/jmvl/btc-monitor
+---
+
+# Btc Monitor Workflow Extend Database Model And Update Tests
+
+## Action
+
+Follow the extend-database-model-and-update-tests workflow:
+1. Update src/btc_monitor/models.py to add or change model fields
+2. Update data fetchers and save logic (e.g., src/btc_monitor/coinmarketcap.py, main.py) to handle new fields
+3. Update or add tests to reflect new schema (e.g., change 'price' to 'close' in tests)
+4. Update config or documentation if new fields are user-facing
+5. Run and fix all tests to ensure compatibility with new schema
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~1x per month
+- Files: src/btc_monitor/models.py, src/btc_monitor/*.py, tests/*.py
+
+---
+id: btc-monitor-workflow-add-or-update-strategy-and-backtesting
+trigger: "when doing add or update strategy and backtesting"
+confidence: 0.55
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/jmvl/btc-monitor
+---
+
+# Btc Monitor Workflow Add Or Update Strategy And Backtesting
+
+## Action
+
+Follow the add-or-update-strategy-and-backtesting workflow:
+1. Add or update strategy logic in src/btc_monitor/backtest.py or new script files
+2. Add or update scripts in scripts/ (e.g., run_backtest.py, compare_strategies.py)
+3. Add or update PineScript files for TradingView verification
+4. Add or update test data (e.g., CSV files in data/)
+5. Update documentation or usage instructions if needed
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~1x per month
+- Files: src/btc_monitor/backtest.py, scripts/*.py, strategy_*.pine
+
+---
+id: btc-monitor-workflow-fix-or-extend-type-checking-and-stubs
+trigger: "when doing fix or extend type checking and stubs"
+confidence: 0.55
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/jmvl/btc-monitor
+---
+
+# Btc Monitor Workflow Fix Or Extend Type Checking And Stubs
+
+## Action
+
+Follow the fix-or-extend-type-checking-and-stubs workflow:
+1. Add or update type stubs (*.pyi) for modules with complex types
+2. Update pyproject.toml or requirements for type-related dependencies (e.g., pandas-stubs)
+3. Fix type annotations in affected source files
+4. Add or update regression tests to ensure type checks pass
+5. Run mypy and pytest to confirm all checks pass
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~1x per month
+- Files: src/btc_monitor/*.pyi, pyproject.toml, src/btc_monitor/*.py
+
+---
+id: btc-monitor-instinct-file-naming
+trigger: "When creating a new source file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: jmvl/btc-monitor
+---
+
+# Btc Monitor Instinct File Naming
+
+## Action
+
+Name the file using PascalCase (e.g., CoinMarketCap.py)
+
+## Evidence
+
+- Naming conventions in analysis
+- src/btc_monitor/coinmarketcap.py
+
+---
+id: btc-monitor-instinct-function-naming
+trigger: "When defining a new function"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: jmvl/btc-monitor
+---
+
+# Btc Monitor Instinct Function Naming
+
+## Action
+
+Use camelCase for function names
+
+## Evidence
+
+- Naming conventions in analysis
+- src/btc_monitor/indicators.py
+
+---
+id: btc-monitor-instinct-class-naming
+trigger: "When defining a new class"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: jmvl/btc-monitor
+---
+
+# Btc Monitor Instinct Class Naming
+
+## Action
+
+Use PascalCase for class names
+
+## Evidence
+
+- Naming conventions in analysis
+- src/btc_monitor/models.py
+
+---
+id: btc-monitor-instinct-constant-naming
+trigger: "When defining a constant"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: jmvl/btc-monitor
+---
+
+# Btc Monitor Instinct Constant Naming
+
+## Action
+
+Use SCREAMING_SNAKE_CASE for constant names
+
+## Evidence
+
+- Naming conventions in analysis
+
+---
+id: btc-monitor-instinct-relative-imports
+trigger: "When importing modules within the package"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: jmvl/btc-monitor
+---
+
+# Btc Monitor Instinct Relative Imports
+
+## Action
+
+Use relative imports
+
+## Evidence
+
+- ImportStyle: relative
+- src/btc_monitor/cli.py
+
+---
+id: btc-monitor-instinct-named-exports
+trigger: "When exporting functions or classes"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: jmvl/btc-monitor
+---
+
+# Btc Monitor Instinct Named Exports
+
+## Action
+
+Use named exports (no default exports)
+
+## Evidence
+
+- ExportStyle: named
+
+---
+id: btc-monitor-instinct-test-location
+trigger: "When adding or updating tests"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: jmvl/btc-monitor
+---
+
+# Btc Monitor Instinct Test Location
+
+## Action
+
+Place test files in the separate 'tests' directory
+
+## Evidence
+
+- testLocation: separate
+- tests/*.py
+
+---
+id: btc-monitor-instinct-test-update-after-model-change
+trigger: "When changing database model fields"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: jmvl/btc-monitor
+---
+
+# Btc Monitor Instinct Test Update After Model Change
+
+## Action
+
+Update all related tests to reflect new schema
+
+## Evidence
+
+- extend-database-model-and-update-tests workflow
+- fix: Update all tests for OHLCV database model changes
+
+---
+id: btc-monitor-instinct-test-new-feature
+trigger: "When adding a new feature or module"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: jmvl/btc-monitor
+---
+
+# Btc Monitor Instinct Test New Feature
+
+## Action
+
+Add new tests or test files to cover the new feature
+
+## Evidence
+
+- add-new-feature-or-module workflow
+- tests/test_logging.py
+
+---
+id: btc-monitor-instinct-conventional-commits
+trigger: "When making a commit"
+confidence: 0.95
+domain: git
+source: repo-analysis
+source_repo: jmvl/btc-monitor
+---
+
+# Btc Monitor Instinct Conventional Commits
+
+## Action
+
+Use conventional commit prefixes: feat, fix, chore, docs
+
+## Evidence
+
+- Conventional commit examples
+- feat: US-016 - Add comprehensive logging and error handling
+
+---
+id: btc-monitor-instinct-commit-length
+trigger: "When writing a commit message"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: jmvl/btc-monitor
+---
+
+# Btc Monitor Instinct Commit Length
+
+## Action
+
+Keep the commit message concise, around 50 characters
+
+## Evidence
+
+- averageLength: 52
+
+---
+id: btc-monitor-instinct-new-feature-workflow
+trigger: "When someone wants to add a new capability (API integration, backtesting, logging, etc.) to the system"
+confidence: 0.95
+domain: workflow
+source: repo-analysis
+source_repo: jmvl/btc-monitor
+---
+
+# Btc Monitor Instinct New Feature Workflow
+
+## Action
+
+Follow the add-new-feature-or-module workflow: create new module(s), update config, integrate in main, update CLI/scripts, update docs, add tests
+
+## Evidence
+
+- add-new-feature-or-module workflow
+- feat: Add CoinMarketCap API integration
+
+---
+id: btc-monitor-instinct-extend-db-model-workflow
+trigger: "When someone wants to add or change fields in database models"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: jmvl/btc-monitor
+---
+
+# Btc Monitor Instinct Extend Db Model Workflow
+
+## Action
+
+Follow the extend-database-model-and-update-tests workflow: update models.py, update fetchers, update/add tests, update config/docs, run/fix all tests
+
+## Evidence
+
+- extend-database-model-and-update-tests workflow
+- fix: Update all tests for OHLCV database model changes
+
+---
+id: btc-monitor-instinct-add-strategy-workflow
+trigger: "When someone wants to add or improve trading strategies or backtesting capabilities"
+confidence: 0.85
+domain: workflow
+source: repo-analysis
+source_repo: jmvl/btc-monitor
+---
+
+# Btc Monitor Instinct Add Strategy Workflow
+
+## Action
+
+Follow the add-or-update-strategy-and-backtesting workflow: update backtest.py/scripts, add PineScript, update test data, update docs
+
+## Evidence
+
+- add-or-update-strategy-and-backtesting workflow
+- feat: Add backtesting module with RSI strategy
+
+---
+id: btc-monitor-instinct-fix-types-workflow
+trigger: "When someone wants to fix type errors or improve type safety"
+confidence: 0.85
+domain: workflow
+source: repo-analysis
+source_repo: jmvl/btc-monitor
+---
+
+# Btc Monitor Instinct Fix Types Workflow
+
+## Action
+
+Follow the fix-or-extend-type-checking-and-stubs workflow: update type stubs, update pyproject.toml, fix annotations, add regression tests, run mypy/pytest
+
+## Evidence
+
+- fix-or-extend-type-checking-and-stubs workflow
+
